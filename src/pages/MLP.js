@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+
 function IncDecButton({ labelText, valueText, onClickDec, onClickInc }) {
     return (
         <form className="mb-2">
@@ -32,28 +33,61 @@ function IncDecButton({ labelText, valueText, onClickDec, onClickInc }) {
     );
 }
 
+function Slider() {
+    const [price, setPrice] = useState(500);
+
+    return (
+        <div class="bg-white rounded-lg p-1 w-full max-w-md">
+            <div class="mb-4">
+                <label>Epochs</label>
+                <input 
+                    type="range"
+                    id="price-range"
+                    class="w-full accent-indigo-600"
+                    min="0" max="10000"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                />
+            </div>
+            <div class="flex justify-between text-gray-500">
+                <span id="minVal">1</span>
+                <span id="maxVal">10000</span>
+            </div>
+        </div>
+    );
+}
+
 const MAX_LAYERS = 6;
 const MAX_NEURONS = 6;
 
 function MLP() {
-    const [hiddenLayers, setHiddenLayers] = useState(0);
-    const [neuronsInLayers, setNeuronsInLayers] = useState([]);
+    // Architecture state
+    const [hiddenLayers, setHiddenLayers] = useState(1);
+    const [neuronsInLayers, setNeuronsInLayers] = useState([1]);
+    
+    // Hyperparameter state
+    const [epochs, setEpochs] = useState(500);
 
     const layerCountDec = () => {
-        setHiddenLayers(prev => (prev>0 ? prev-1 : 0));
-        setNeuronsInLayers(prev => (prev.length>0 ? prev.slice(0,-1) : []));
+        setHiddenLayers(prev => (prev>1 ? prev-1 : 1));
+        setNeuronsInLayers(prev => (prev.length>1 ? prev.slice(0,-1) : prev));
     };
 
     const layerCountInc = () => {
         setHiddenLayers(prev => (prev < MAX_LAYERS ? prev+1 : MAX_LAYERS));
-        setNeuronsInLayers(prev => (prev.length < MAX_LAYERS ? [...prev, 0] : prev));
+        setNeuronsInLayers(prev => (prev.length < MAX_LAYERS ? [...prev, 1] : prev));
     };
 
     const neuronCountDec = (idx) => {
         setNeuronsInLayers(prev => {
-            const updated = [...prev];
-            updated[idx] = Math.max(updated[idx] - 1, 0);
-            return updated;
+            if(prev[idx] === 1) {
+                setHiddenLayers(prevLayers => (prevLayers>1 ? prevLayers-1 : 1));
+                return prev.length>1 ? prev.filter((_, i) => i !== idx) : prev;
+            } else {
+                const updated = [...prev];
+                updated[idx] = Math.max(updated[idx] - 1, 1);
+                return updated;
+            }
         });
     };
 
@@ -77,6 +111,8 @@ function MLP() {
                         <IncDecButton key={idx} labelText={`Neurons in layer ${idx+1}`} valueText={neuronsInLayers[idx]} onClickDec={() => neuronCountDec(idx)} onClickInc={() => neuronCountInc(idx)} />
                     ))}
                 </div>
+                <h2 className="font-bold mb-2">Hyperparameters</h2>
+                <Slider />
             </div>
         </div>
     );
