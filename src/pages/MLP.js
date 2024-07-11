@@ -15,38 +15,67 @@ const MODEL_FUNCTIONS = [
 ];
 
 const data = [
-    { x: 0, y: 10 },
-    { x: 1, y: 20 },
-    { x: 2, y: 15 },
-    { x: 3, y: 25 },
-    { x: 4, y: 40 },
+    { x: 0, y: 0 },
+    { x: 0.1, y: 0.2 },
+    { x: 0.2, y: 0.1 },
+    { x: 0.3, y: 0.2 },
+    { x: 0.4, y: 0.1 },
   ];
 
-function Graph() {
+  const WIDTH        = 400;
+  const HEIGHT       = 300;
+  const MARGIN       = { top: 10, right: 10, bottom: 20, left: 30 };
+  const INNER_WIDTH  = WIDTH - MARGIN.left - MARGIN.right;
+  const INNER_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
+
+  function Graph() {
     const svgRef = useRef();
-    
+
     useEffect(() => {
-        const svg = d3.select(svgRef.current);
+        const svg = d3.select(svgRef.current)
+            .attr('width', WIDTH)
+            .attr('height', HEIGHT);
+
+        // Clear previous content
+        svg.selectAll("*").remove();
+
+        const g = svg.append('g')
+            .attr('transform', 'translate(' + MARGIN.left + ',' + MARGIN.top + ')');
 
         // scales, axes
         const xScale = d3.scaleLinear()
-            .domain([0, data.length-1])
-            .range([0, 300]);
+            .domain([0, d3.max(data, d => d.x)])
+            .range([0, INNER_WIDTH]);
         const yScale = d3.scaleLinear()
-            .domain([0, 100])
-            .range([100, 0]);
-        const xAxis = d3.axisBottom(xScale).ticks(data.length);
-        svg.select(".x-axis").style("transform", "translateY(100px)").call(xAxis);
-        const yAxis = d3.axisLeft(yScale);
-        svg.select(".y-axis").style("transform", "translateX(100px)").call(yAxis);
+            .domain([0, d3.max(data, d => d.y)])
+            .range([INNER_HEIGHT, 0]);
+        const xAxis = d3.axisBottom(xScale).ticks(10);
+        const yAxis = d3.axisLeft(yScale).ticks(10);
+        const xAxisGrid = d3.axisBottom(xScale).tickSize(-INNER_HEIGHT).tickFormat('').ticks(10);
+        const yAxisGrid = d3.axisLeft(yScale).tickSize(-INNER_WIDTH).tickFormat('').ticks(10);
+
+        g.append('g')
+            .attr('class', 'x axis-grid')
+            .attr('transform', 'translate(0,' + INNER_HEIGHT + ')')
+            .call(xAxisGrid);
+        g.append('g')
+            .attr('class', 'y axis-grid')
+            .call(yAxisGrid);
+        // Create axes.
+        g.append('g')
+            .attr('class', 'x axis')
+            .attr('transform', 'translate(0,' + INNER_HEIGHT + ')')
+            .call(xAxis);
+        g.append('g')
+            .attr('class', 'y axis')
+            .call(yAxis);
 
         // line
         const myLine = d3.line()
-            .x((d, i) => xScale(i))
+            .x((d) => xScale(d.x))
             .y((d) => yScale(d.y))
             .curve(d3.curveCardinal);
-        svg
-            .selectAll(".line")
+        g.selectAll(".line")
             .data([data])
             .join("path")
             .attr("class", "line")
@@ -56,9 +85,7 @@ function Graph() {
     }, [data]);
 
     return (
-        <svg ref={svgRef}>
-
-        </svg>
+        <svg ref={svgRef}></svg>
     )
 }
 
@@ -135,7 +162,7 @@ function MLP() {
             <div className="m-4">
                 <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} />
             </div>
-            <div className="flex flex-col m-4 ml-auto p-6 bg-gray-100 border border-gray-300 h-auto">
+            <div className="flex flex-col m-4 ml-auto p-6 bg-gray-100 border border-gray-300 h-2/4">
                 <h1 className="text-xl font-bold mb-4">Settings</h1>
                 <h2 className="font-bold mb-2">Architecture</h2>
                 <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
