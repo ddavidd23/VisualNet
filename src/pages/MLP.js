@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-
+import React, { useState } from "react";
+import * as tf from "@tensorflow/tfjs";
 
 function IncDecButton({ labelText, valueText, onClickDec, onClickInc }) {
     return (
@@ -33,32 +33,38 @@ function IncDecButton({ labelText, valueText, onClickDec, onClickInc }) {
     );
 }
 
-function Slider() {
-    const [price, setPrice] = useState(500);
+function Slider({ labelText, setState }) {
+    const [value, setValue] = useState(500);
 
     return (
-        <div class="bg-white rounded-lg p-1 w-full max-w-md">
-            <div class="mb-4">
-                <label>Epochs</label>
-                <input 
-                    type="range"
-                    id="price-range"
-                    class="w-full accent-indigo-600"
-                    min="0" max="10000"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                />
+        <>
+            <p className="text-sm">{labelText}</p>
+            <div class="bg-white rounded-lg px-1 pt-1 w-full">
+                <div>
+                    <input 
+                        type="range"
+                        id="price-range"
+                        class="w-full"
+                        min="0" max="10000"
+                        value={value}
+                        onChange={(e) => {
+                            setValue(e.target.value);
+                            setState(e.target.value);
+                        }}
+                    />
+                </div>
+                <div class="text-center">
+                    <span className="text-sm text-center">{value}</span>
+                </div>
             </div>
-            <div class="flex justify-between text-gray-500">
-                <span id="minVal">1</span>
-                <span id="maxVal">10000</span>
-            </div>
-        </div>
+        </>
     );
 }
 
 const MAX_LAYERS = 6;
 const MAX_NEURONS = 6;
+const X_TRAIN_DATA = [0,1,2,3,4,5];
+const Y_TRAIN_DATA = [0,2,4,6,8,10];
 
 function MLP() {
     // Architecture state
@@ -99,6 +105,23 @@ function MLP() {
         });
     };
 
+    const createModel = async () => {
+        const model = tf.sequential();
+        model.add(tf.layers.dense({ units: neuronsInLayers[0], inputShape: [1], activation: 'relu' }));
+        for (let i = 1; i < hiddenLayers; i++) {
+            model.add(tf.layers.dense({ units: neuronsInLayers[i], activation: 'relu' }));
+        }
+        model.add(tf.layers.dense({ units: 1}));
+        model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
+
+        const xs = tf.tensor2d(X_TRAIN_DATA, [X_TRAIN_DATA.length, 1]);
+        const ys = tf.tensor2d(Y_TRAIN_DATA, [Y_TRAIN_DATA.length, 1]);
+
+        await model.fit(xs, ys, { epochs: epochs });
+
+        alert('Model training complete!');
+    }
+
 
     return (
         <div className="test-gray-900 font-medium">
@@ -112,7 +135,13 @@ function MLP() {
                     ))}
                 </div>
                 <h2 className="font-bold mb-2">Hyperparameters</h2>
-                <Slider />
+                <Slider labelText="Epochs" setState={setEpochs} />
+                <button
+                    onClick={createModel}
+                    className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                    Train Model
+                </button>
             </div>
         </div>
     );
