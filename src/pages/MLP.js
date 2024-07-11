@@ -3,67 +3,10 @@ import * as tf from "@tensorflow/tfjs";
 import * as d3 from 'd3';
 
 import MLPDiagram from '../comps/MLPDiagram';
+import IncDecButton from '../comps/IncDecButton';
+import Slider from '../comps/Slider';
 
 
-function IncDecButton({ labelText, valueText, onClickDec, onClickInc }) {
-    return (
-        <form className="mb-2">
-            <label className="block mb-2 text-sm">{labelText}</label>
-            <div className="flex items-center">
-                <button 
-                    type="button"
-                    id="decrement-button"
-                    className="bg-gray-100 flex items-center dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600 hover:bg-gray-200 border border-gray-300 rounded-s-lg p-3 h-11 focus:ring-gray-100 dark:focus:ring-gray-700 focus:ring-2 focus:outline-none"
-                    onClick={onClickDec}
-                >
-                    -
-                </button>
-                <input 
-                    type="text"
-                    className="bg-white items-center border-x-0 border-gray-300 justify-center text-center text-sm focus:ring-blue-500 focus:border-blue-500 block w-full pt-3 pb-3 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                    value={valueText}
-                    readOnly
-                />
-                <button
-                    type="button"
-                    id="increment-button"
-                    className="bg-gray-100 flex items-center dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600 hover:bg-gray-200 border border-gray-300 rounded-e-lg p-3 h-11 focus:ring-gray-100 dark:focus:ring-gray-700 focus:ring-2 focus:outline-none"
-                    onClick={onClickInc}
-                >
-                    +
-                </button>
-            </div>
-        </form>
-    );
-}
-
-function Slider({ labelText, setState }) {
-    const [value, setValue] = useState(500);
-
-    return (
-        <>
-            <p className="text-sm">{labelText}</p>
-            <div className="bg-white rounded-lg px-1 pt-1 w-full border border-gray-300">
-                <div>
-                    <input 
-                        type="range"
-                        id="price-range"
-                        className="w-full"
-                        min="0" max="10000"
-                        value={value}
-                        onChange={(e) => {
-                            setValue(e.target.value);
-                            setState(e.target.value);
-                        }}
-                    />
-                </div>
-                <div className="text-center">
-                    <span className="text-sm text-center">{value}</span>
-                </div>
-            </div>
-        </>
-    );
-}
 
 const MODEL_FUNCTIONS = [
     (x) => Math.pow(x, 2),
@@ -121,13 +64,15 @@ function MLP() {
 
         // const xs = tf.tensor2d([0, 1, 2, 3, 4, 5], [6, 1]);
         // const ys = tf.tensor2d([0, 2, 4, 6, 8, 10], [6, 1]);
-        const x_vals = []
-        if(modelFunctionIdx === 1) {
-            x_vals = Array(100).fill().map((_,i) => (i-50)/10);
+        if(modelFunctionIdx === 0) {
+            var x_vals = Array(101).fill().map((_,i) => (i-50)/10);
         }
+        console.log(x_vals);
         const y_vals = x_vals.map(MODEL_FUNCTIONS[modelFunctionIdx]);
-        const xs = tf.tensor2d(x_vals);
-        const ys = tf.tensor2d(y_vals);
+        const xs = tf.tensor2d(x_vals, [x_vals.length,1]);
+        const ys = tf.tensor2d(y_vals, [y_vals.length,1]);
+        console.log(`xs: ${xs}`);
+        console.log(`ys: ${ys}`);
 
         await model.fit(xs, ys, { epochs: epochs });
 
