@@ -1,20 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import * as tf from "@tensorflow/tfjs"
+import * as tf from "@tensorflow/tfjs";
 import * as d3 from 'd3';
 
-function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
+function FCNNComponent({ architecture, showBias, showLabels }) {
     const svgRef = useRef(null);
 
     useEffect(() => {
         const svg = d3.select(svgRef.current).attr("xmlns", "http://www.w3.org/2000/svg");
         svg.selectAll("*").remove();
         const g = svg.append("g");
-
-        // if (g.empty()) {
-        //     g = svg.append("g");
-        // } else {
-        //     g.selectAll('*').remove();
-        // }
 
         let randomWeight = () => Math.random() * 2 - 1;
 
@@ -26,7 +20,7 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
         var weightedEdgeWidth = d3.scaleLinear().domain([0, 1]).range([0, edgeWidth]);
 
         var edgeOpacityProportional = false;
-        var edgeOpacity = 1.0
+        var edgeOpacity = 1.0;
         var weightedEdgeOpacity = d3.scaleLinear().domain([0, 1]).range([0, 1]);
 
         var edgeColorProportional = false;
@@ -49,10 +43,7 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
         var showArrowheads = false;
         var arrowheadStyle = "empty";
 
-        let sup_map = {'0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'};
-        let sup = (s) => Array.prototype.map.call(s, (d) => (d in sup_map && sup_map[d]) || d).join('');
-
-        let textFn = (layer_index, layer_width) => ((layer_index === 0 ? "Input" : (layer_index === architecture.length - 1 ? "Output" : "Hidden")) + " Layer ∈ ℝ" + sup(layer_width.toString()));
+        let textFn = (_, layer_width) => (layer_width.toString() + " neurons");
         var nominal_text_size = 12;
         var textWidth = 70;
 
@@ -77,14 +68,12 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
 
         function redraw({ architecture_ = architecture,
             showBias_ = showBias,
-            showLabels_ = showLabels,
-            bezierCurves_ = bezierCurves,
+            showLabels_ = showLabels
         } = {}) {
 
             architecture = architecture_;
             showBias = showBias_;
             showLabels = showLabels_;
-            bezierCurves = bezierCurves_;
 
             graph.nodes = architecture.map((layer_width, layer_index) => range(layer_width).map(node_index => { return { 'id': layer_index + '_' + node_index, 'layer': layer_index, 'node_index': node_index } }));
             graph.links = pairWise(graph.nodes).map((nodes) => nodes[0].map(left => nodes[1].map(right => { return right.node_index >= 0 ? { 'id': left.id + '-' + right.id, 'source': left.id, 'target': right.id, 'weight': randomWeight() } : null })));
@@ -103,12 +92,11 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
             node = node.data(graph.nodes, d => d.id);
             node.exit().remove();
             node = node.enter()
-                .append("circle")
-                .attr("r", nodeDiameter / 2)
+                .append("rect")
+                .attr("width", nodeDiameter)
+                .attr("height", nodeDiameter)
                 .attr("class", "node")
                 .attr("id", function (d) { return d.id; })
-                .on("mousedown", set_focus)
-                .on("mouseup", remove_focus)
                 .merge(node);
 
             text = text.data(label, d => d.id);
@@ -126,15 +114,13 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
 
         function redistribute({ betweenNodesInLayer_ = betweenNodesInLayer,
             betweenLayers_ = betweenLayers,
-            nnDirection_ = nnDirection,
-            bezierCurves_ = bezierCurves } = {}) {
+            nnDirection_ = nnDirection} = {}) {
 
             betweenNodesInLayer = betweenNodesInLayer_;
             betweenLayers = betweenLayers_;
             nnDirection = nnDirection_;
-            bezierCurves = bezierCurves_;
 
-            let layer_widths = architecture.map((layer_width, i) => layer_width * nodeDiameter + (layer_width - 1) * betweenNodesInLayer[i])
+            let layer_widths = architecture.map((layer_width, i) => layer_width * nodeDiameter + (layer_width - 1) * betweenNodesInLayer[i]);
 
             largest_layer_width = Math.max(...layer_widths);
 
@@ -149,37 +135,14 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
             let yt = (layer, node_index) => layer * (betweenLayers + nodeDiameter) + h / 2 - (betweenLayers * layer_offsets.length / 3);
 
             if (nnDirection == 'up') { x = xt; y = yt; }
-            // debugger;
-            node.attr('cx', function (d) { 
-                console.timeLog(`layer_offsets: ${layer_offsets}`);
-                console.log(`layer_offsets[layer]: ${layer_offsets[d.layer]}`);
-                console.log(`Layer: ${d.layer}, Node Index: ${d.node_index}, x: ${x(d.layer, d.node_index)}, y: ${y(d.layer, d.node_index)}`);
-                return x(d.layer, d.node_index); 
-            })
-                .attr('cy', function (d) { 
-                    return y(d.layer, d.node_index); 
-                });
 
-            if (bezierCurves) {
-                link.attr("d", (d) => {
-                    let source = [x(...indices_from_id(d.source)), y(...indices_from_id(d.source))];
-                    let target = [x(...indices_from_id(d.target)), y(...indices_from_id(d.target))];
+            node.attr('x', function (d) { return x(d.layer, d.node_index) - nodeDiameter / 2; })
+                .attr('y', function (d) { return y(d.layer, d.node_index) - nodeDiameter / 2; });
 
-                    // control points
-                    let cp1 = [(source[0] + target[0]) / 2, source[1]];
-                    let cp2 = [(source[0] + target[0]) / 2, target[1]];
-
-                    return "M" + source[0] + "," + source[1]
-                        + "C" + cp1[0] + "," + cp1[1]
-                        + " " + cp2[0] + "," + cp2[1]
-                        + " " + target[0] + "," + target[1];
-                });
-            } else {
-                link.attr("d", (d) => "M" + x(...indices_from_id(d.source)) + "," +
-                    y(...indices_from_id(d.source)) + ", " +
-                    x(...indices_from_id(d.target)) + "," +
-                    y(...indices_from_id(d.target)));
-            }
+            link.attr("d", (d) => "M" + x(...indices_from_id(d.source)) + "," +
+                y(...indices_from_id(d.source)) + ", " +
+                x(...indices_from_id(d.target)) + "," +
+                y(...indices_from_id(d.target)));
 
             text.attr("x", function (d) { return (nnDirection === 'right' ? x(d.layer, d.node_index) - textWidth / 2 : w / 2 + largest_layer_width / 2 + 20); })
                 .attr("y", function (d) { return (nnDirection === 'right' ? h / 2 + largest_layer_width / 2 + 20 : y(d.layer, d.node_index)); });
@@ -198,8 +161,7 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
             nodeColor_ = nodeColor,
             nodeBorderColor_ = nodeBorderColor,
             showArrowheads_ = showArrowheads,
-            arrowheadStyle_ = arrowheadStyle,
-            bezierCurves_ = bezierCurves } = {}) {
+            arrowheadStyle_ = arrowheadStyle} = {}) {
             // Edge Width
             edgeWidthProportional = edgeWidthProportional_;
             edgeWidth = edgeWidth_;
@@ -220,8 +182,6 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
             // Arrowheads
             showArrowheads = showArrowheads_;
             arrowheadStyle = arrowheadStyle_;
-            // Bezier curves
-            bezierCurves = bezierCurves_;
 
             link.style("stroke-width", function (d) {
                 if (edgeWidthProportional) { return weightedEdgeWidth(Math.abs(d.weight)); } else { return edgeWidth; }
@@ -241,37 +201,10 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
             marker.attr('refX', nodeDiameter * 1.4 + 12);
             arrowhead.style("fill", arrowheadStyle === 'empty' ? "none" : defaultEdgeColor);
 
-            node.attr("r", nodeDiameter / 2);
             node.style("fill", nodeColor);
             node.style("stroke", nodeBorderColor);
 
         }
-
-        /////////////////////////////////////////////////////////////////////////////
-                          ///////    Focus    ///////
-        /////////////////////////////////////////////////////////////////////////////
-
-        function set_focus(d) {
-            d3.event.stopPropagation();
-            node.style("opacity", function (o) { return (d == o || o.layer == d.layer - 1) ? 1 : 0.1; });
-            link.style("opacity", function (o) { return (o.target == d.id) ? 1 : 0.02; });
-        }
-
-        function remove_focus() {
-            d3.event.stopPropagation();
-            node.style("opacity", 1);
-            link.style("opacity", function () { return edgeOpacity; })
-        }
-
-        /////////////////////////////////////////////////////////////////////////////
-                          ///////    Zoom & Resize   ///////
-        /////////////////////////////////////////////////////////////////////////////
-
-        // svg.call(d3.zoom()
-        //     .scaleExtent([1 / 2, 8])
-        //     .on("zoom", zoomed));
-
-        function zoomed() { g.attr("transform", d3.event.transform); }
 
         function resize() {
             w = window.innerWidth;
@@ -290,11 +223,11 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
         redraw();
         redistribute();
         style();
-    }, [architecture, showBias, showLabels, bezierCurves]);
+    }, [architecture, showBias, showLabels]);
 
     return (
         <div id="graph-container">
-            <svg ref={svgRef} width="100%" height="100%" />
+            <svg ref={svgRef} width="100%" height="80%" />
         </div>
     );
 }
@@ -363,24 +296,20 @@ function MLP() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
     const [neuronsInLayers, setNeuronsInLayers] = useState([1]);
     const [epochs, setEpochs] = useState(500);
-    // const [architecture, setArchitecture] = useState([8, 12, 8]);
     const [showBias, setShowBias] = useState(false);
     const [showLabels, setShowLabels] = useState(true);
 
     const layerCountDec = () => {
-        console.log([1, ...neuronsInLayers, 1]);
         setHiddenLayers(prev => (prev > 1 ? prev - 1 : 1));
         setNeuronsInLayers(prev => (prev.length > 1 ? prev.slice(0, -1) : prev));
     };
 
     const layerCountInc = () => {
-        console.log([1, ...neuronsInLayers, 1]);
         setHiddenLayers(prev => (prev < 6 ? prev + 1 : 6));
         setNeuronsInLayers(prev => (prev.length < 6 ? [...prev, 1] : prev));
     };
 
     const neuronCountDec = (idx) => {
-        console.log([1, ...neuronsInLayers, 1]);
         setNeuronsInLayers(prev => {
             if (prev[idx] === 1) {
                 setHiddenLayers(prevLayers => (prevLayers > 1 ? prevLayers - 1 : 1));
@@ -394,7 +323,6 @@ function MLP() {
     };
 
     const neuronCountInc = (idx) => {
-        console.log([1, ...neuronsInLayers, 1]);
         setNeuronsInLayers(prev => {
             const updated = [...prev];
             updated[idx] = Math.min(updated[idx] + 1, 6);
@@ -422,7 +350,7 @@ function MLP() {
     return (
         <div className="grid grid-cols-6 gap-4 overflow-hidden">
             <div className="col-span-4 flex justify-center items-center">
-                <FCNNComponent architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} bezierCurves={true} />
+                <FCNNComponent architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} />
             </div>
             <div className="col-span-2 m-4 p-6 bg-gray-100 border border-gray-300">
                 <h1 className="text-xl font-bold mb-4">Settings</h1>
@@ -444,9 +372,6 @@ function MLP() {
             </div>
         </div>
     );
-    
-    
-    
 }
 
 export default MLP;
