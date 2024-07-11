@@ -14,6 +14,54 @@ const MODEL_FUNCTIONS = [
     (x) => Math.log(x+1)*x,
 ];
 
+const data = [
+    { x: 0, y: 10 },
+    { x: 1, y: 20 },
+    { x: 2, y: 15 },
+    { x: 3, y: 25 },
+    { x: 4, y: 40 },
+  ];
+
+function Graph() {
+    const svgRef = useRef();
+    
+    useEffect(() => {
+        const svg = d3.select(svgRef.current);
+
+        // scales, axes
+        const xScale = d3.scaleLinear()
+            .domain([0, data.length-1])
+            .range([0, 300]);
+        const yScale = d3.scaleLinear()
+            .domain([0, 100])
+            .range([100, 0]);
+        const xAxis = d3.axisBottom(xScale).ticks(data.length);
+        svg.select(".x-axis").style("transform", "translateY(100px)").call(xAxis);
+        const yAxis = d3.axisLeft(yScale);
+        svg.select(".y-axis").style("transform", "translateX(100px)").call(yAxis);
+
+        // line
+        const myLine = d3.line()
+            .x((d, i) => xScale(i))
+            .y((d) => yScale(d.y))
+            .curve(d3.curveCardinal);
+        svg
+            .selectAll(".line")
+            .data([data])
+            .join("path")
+            .attr("class", "line")
+            .attr("d", myLine)
+            .attr("fill", "none")
+            .attr("stroke", "#00bfa6");
+    }, [data]);
+
+    return (
+        <svg ref={svgRef}>
+
+        </svg>
+    )
+}
+
 function MLP() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
     const [neuronsInLayers, setNeuronsInLayers] = useState([1]);
@@ -80,11 +128,14 @@ function MLP() {
     };
 
     return (
-        <div className="grid grid-cols-6 gap-4 overflow-hidden">
-            <div className="col-span-4 flex justify-center items-center">
+        <div className="flex flex-row">
+            <div className="m-4">
+                <Graph />
+            </div>
+            <div className="m-4">
                 <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} />
             </div>
-            <div className="col-span-2 m-4 p-6 bg-gray-100 border border-gray-300">
+            <div className="flex flex-col m-4 ml-auto p-6 bg-gray-100 border border-gray-300 h-auto">
                 <h1 className="text-xl font-bold mb-4">Settings</h1>
                 <h2 className="font-bold mb-2">Architecture</h2>
                 <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />

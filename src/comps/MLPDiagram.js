@@ -7,13 +7,14 @@ export default function MLPDiagram({ architecture, showBias, showLabels }) {
 
     useEffect(() => {
         const svg = d3.select(svgRef.current).attr("xmlns", "http://www.w3.org/2000/svg");
+        // console.log(`ref: ${svgRef}`);
         svg.selectAll("*").remove();
         const g = svg.append("g");
 
         let randomWeight = () => Math.random() * 2 - 1;
 
-        var w = window.innerWidth;
-        var h = window.innerHeight;
+        var w = window.innerWidth/2;
+        var h = window.innerHeight/2;
 
         var edgeWidthProportional = false;
         var edgeWidth = 0.5;
@@ -198,7 +199,7 @@ export default function MLPDiagram({ architecture, showBias, showLabels }) {
         }
 
         function resize() {
-            w = window.innerWidth;
+            w = window.innerWidth/2;
             h = window.innerHeight;
             svg.attr("width", w).attr("height", h);
             redistribute();
@@ -218,9 +219,9 @@ export default function MLPDiagram({ architecture, showBias, showLabels }) {
     }, [architecture, showBias, showLabels]);
 
     return (
-        <div id="graph-container">
-            <svg ref={svgRef} width="100%" height="100%" />
-        </div>
+        // <div id="graph-container">
+        <svg ref={svgRef}/>
+        // </div>
     );
 }
 
