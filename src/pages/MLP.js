@@ -7,8 +7,14 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
 
     useEffect(() => {
         const svg = d3.select(svgRef.current).attr("xmlns", "http://www.w3.org/2000/svg");
+        svg.selectAll("*").remove();
         const g = svg.append("g");
-        // svg.style("cursor", "move");
+
+        // if (g.empty()) {
+        //     g = svg.append("g");
+        // } else {
+        //     g.selectAll('*').remove();
+        // }
 
         let randomWeight = () => Math.random() * 2 - 1;
 
@@ -33,13 +39,13 @@ function FCNNComponent({ architecture, showBias, showLabels, bezierCurves }) {
         var nodeColor = "#ffffff";
         var nodeBorderColor = "#333333";
 
-        var betweenLayers = 160;
+        var betweenLayers = 80;
 
-        var betweenNodesInLayer = Array(architecture.length).fill(20);
+        var betweenNodesInLayer = Array(architecture.length).fill(10);
         var graph = {};
         var layer_offsets = [];
         var largest_layer_width = 0;
-        var nnDirection = 'right';
+        var nnDirection = 'up';
         var showArrowheads = false;
         var arrowheadStyle = "empty";
 
@@ -331,7 +337,7 @@ function Slider({ labelText, setState }) {
     return (
         <>
             <p className="text-sm">{labelText}</p>
-            <div className="bg-white rounded-lg px-1 pt-1 w-full">
+            <div className="bg-white rounded-lg px-1 pt-1 w-full border border-gray-300">
                 <div>
                     <input 
                         type="range"
@@ -414,30 +420,33 @@ function MLP() {
     };
 
     return (
-        <>
-            <div className="test-gray-900 font-medium">
-                <div className="float-right m-4 w-80 p-6 bg-gray-100 border border-gray-300">
-                    <h1 className="text-xl font-bold mb-4">Settings</h1>
-                    <h2 className="font-bold mb-2">Architecture</h2>
-                    <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
-                    <div>
-                        {Array.from({ length: hiddenLayers }, (_, idx) => (
-                            <IncDecButton key={idx} labelText={`Neurons in layer ${idx + 1}`} valueText={neuronsInLayers[idx]} onClickDec={() => neuronCountDec(idx)} onClickInc={() => neuronCountInc(idx)} />
-                        ))}
-                    </div>
-                    <h2 className="font-bold mb-2">Hyperparameters</h2>
-                    <Slider labelText="Epochs" setState={setEpochs} />
-                    <button
-                        onClick={createModel}
-                        className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                    >
-                        Train Model
-                    </button>
-                </div>
+        <div className="grid grid-cols-6 gap-4 overflow-hidden">
+            <div className="col-span-4 flex justify-center items-center">
+                <FCNNComponent architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} bezierCurves={true} />
             </div>
-            <FCNNComponent architecture={[1, 1, 1, 1, 2]} showBias={showBias} showLabels={showLabels} bezierCurves={true} />
-        </>
+            <div className="col-span-2 m-4 p-6 bg-gray-100 border border-gray-300">
+                <h1 className="text-xl font-bold mb-4">Settings</h1>
+                <h2 className="font-bold mb-2">Architecture</h2>
+                <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
+                <div>
+                    {Array.from({ length: hiddenLayers }, (_, idx) => (
+                        <IncDecButton key={idx} labelText={`Neurons in layer ${idx + 1}`} valueText={neuronsInLayers[idx]} onClickDec={() => neuronCountDec(idx)} onClickInc={() => neuronCountInc(idx)} />
+                    ))}
+                </div>
+                <h2 className="font-bold mb-2">Hyperparameters</h2>
+                <Slider labelText="Epochs" setState={setEpochs} />
+                <button
+                    onClick={createModel}
+                    className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                    Train Model
+                </button>
+            </div>
+        </div>
     );
+    
+    
+    
 }
 
 export default MLP;
