@@ -39,7 +39,6 @@ function FCNNComponent({ architecture, showBias, showLabels }) {
         var graph = {};
         var layer_offsets = [];
         var largest_layer_width = 0;
-        var nnDirection = 'up';
         var showArrowheads = false;
         var arrowheadStyle = "empty";
 
@@ -63,7 +62,7 @@ function FCNNComponent({ architecture, showBias, showLabels }) {
         var text = g.selectAll(".text");
 
         /////////////////////////////////////////////////////////////////////////////
-                          ///////    Methods    ///////
+        ///////    Methods    ///////
         /////////////////////////////////////////////////////////////////////////////
 
         function redraw({ architecture_ = architecture,
@@ -113,12 +112,10 @@ function FCNNComponent({ architecture, showBias, showLabels }) {
         }
 
         function redistribute({ betweenNodesInLayer_ = betweenNodesInLayer,
-            betweenLayers_ = betweenLayers,
-            nnDirection_ = nnDirection} = {}) {
+            betweenLayers_ = betweenLayers} = {}) {
 
             betweenNodesInLayer = betweenNodesInLayer_;
             betweenLayers = betweenLayers_;
-            nnDirection = nnDirection_;
 
             let layer_widths = architecture.map((layer_width, i) => layer_width * nodeDiameter + (layer_width - 1) * betweenNodesInLayer[i]);
 
@@ -127,25 +124,20 @@ function FCNNComponent({ architecture, showBias, showLabels }) {
             layer_offsets = layer_widths.map(layer_width => (largest_layer_width - layer_width) / 2);
 
             let indices_from_id = (id) => id.split('_').map(x => parseInt(x));
-
-            let x = (layer, node_index) => layer * (betweenLayers + nodeDiameter) + w / 2 - (betweenLayers * layer_offsets.length / 3);
-            let y = (layer, node_index) => layer_offsets[layer] + node_index * (nodeDiameter + betweenNodesInLayer[layer]) + h / 2 - largest_layer_width / 2;
             
-            let xt = (layer, node_index) => layer_offsets[layer] + node_index * (nodeDiameter + betweenNodesInLayer[layer]) + w / 2 - largest_layer_width / 2;
-            let yt = (layer, node_index) => layer * (betweenLayers + nodeDiameter) + h / 2 - (betweenLayers * layer_offsets.length / 3);
-
-            if (nnDirection == 'up') { x = xt; y = yt; }
+            let x = (layer, node_index) => layer_offsets[layer] + node_index * (nodeDiameter + betweenNodesInLayer[layer]) + w / 2 - largest_layer_width / 2;
+            let y = (layer) => layer * (betweenLayers + nodeDiameter) + h/3 - (betweenLayers * layer_offsets.length / 3);
 
             node.attr('x', function (d) { return x(d.layer, d.node_index) - nodeDiameter / 2; })
-                .attr('y', function (d) { return y(d.layer, d.node_index) - nodeDiameter / 2; });
+                .attr('y', function (d) { return y(d.layer) - nodeDiameter / 2; });
 
             link.attr("d", (d) => "M" + x(...indices_from_id(d.source)) + "," +
                 y(...indices_from_id(d.source)) + ", " +
                 x(...indices_from_id(d.target)) + "," +
                 y(...indices_from_id(d.target)));
 
-            text.attr("x", function (d) { return (nnDirection === 'right' ? x(d.layer, d.node_index) - textWidth / 2 : w / 2 + largest_layer_width / 2 + 20); })
-                .attr("y", function (d) { return (nnDirection === 'right' ? h / 2 + largest_layer_width / 2 + 20 : y(d.layer, d.node_index)); });
+            text.attr("x", function (d) { return w / 2 + largest_layer_width / 2 + 20 })
+                .attr("y", function (d) { return y(d.layer) });
 
         }
 
@@ -210,14 +202,15 @@ function FCNNComponent({ architecture, showBias, showLabels }) {
             w = window.innerWidth;
             h = window.innerHeight;
             svg.attr("width", w).attr("height", h);
+            redistribute();
         }
 
-        d3.select(window).on("resize", resize)
+        d3.select(window).on("resize", resize);
 
         resize();
 
         /////////////////////////////////////////////////////////////////////////////
-                          ///////    Return    ///////
+        ///////    Return    ///////
         /////////////////////////////////////////////////////////////////////////////
 
         redraw();
@@ -227,7 +220,7 @@ function FCNNComponent({ architecture, showBias, showLabels }) {
 
     return (
         <div id="graph-container">
-            <svg ref={svgRef} width="100%" height="80%" />
+            <svg ref={svgRef} width="100%" height="100%" />
         </div>
     );
 }
