@@ -2,228 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as tf from "@tensorflow/tfjs";
 import * as d3 from 'd3';
 
-function FCNNComponent({ architecture, showBias, showLabels }) {
-    const svgRef = useRef(null);
+import MLPDiagram from '../comps/MLPDiagram';
 
-    useEffect(() => {
-        const svg = d3.select(svgRef.current).attr("xmlns", "http://www.w3.org/2000/svg");
-        svg.selectAll("*").remove();
-        const g = svg.append("g");
-
-        let randomWeight = () => Math.random() * 2 - 1;
-
-        var w = window.innerWidth;
-        var h = window.innerHeight;
-
-        var edgeWidthProportional = false;
-        var edgeWidth = 0.5;
-        var weightedEdgeWidth = d3.scaleLinear().domain([0, 1]).range([0, edgeWidth]);
-
-        var edgeOpacityProportional = false;
-        var edgeOpacity = 1.0;
-        var weightedEdgeOpacity = d3.scaleLinear().domain([0, 1]).range([0, 1]);
-
-        var edgeColorProportional = false;
-        var defaultEdgeColor = "#505050";
-        var negativeEdgeColor = "#0000ff";
-        var positiveEdgeColor = "#ff0000";
-        var weightedEdgeColor = d3.scaleLinear().domain([-1, 0, 1]).range([negativeEdgeColor, "white", positiveEdgeColor]);
-
-        var nodeDiameter = 20;
-        var nodeColor = "#ffffff";
-        var nodeBorderColor = "#333333";
-
-        var betweenLayers = 80;
-
-        var betweenNodesInLayer = Array(architecture.length).fill(10);
-        var graph = {};
-        var layer_offsets = [];
-        var largest_layer_width = 0;
-        var showArrowheads = false;
-        var arrowheadStyle = "empty";
-
-        let textFn = (_, layer_width) => (layer_width.toString() + " neurons");
-        var nominal_text_size = 12;
-        var textWidth = 70;
-
-        var marker = svg.append("svg:defs").append("svg:marker")
-            .attr("id", "arrow")
-            .attr("viewBox", "0 -5 10 10")
-            .attr("markerWidth", 7)
-            .attr("markerHeight", 7)
-            .attr("orient", "auto");
-
-        var arrowhead = marker.append("svg:path")
-            .attr("d", "M0,-5L10,0L0,5")
-            .style("stroke", defaultEdgeColor);
-
-        var link = g.selectAll(".link");
-        var node = g.selectAll(".node");
-        var text = g.selectAll(".text");
-
-        /////////////////////////////////////////////////////////////////////////////
-        ///////    Methods    ///////
-        /////////////////////////////////////////////////////////////////////////////
-
-        function redraw({ architecture_ = architecture,
-            showBias_ = showBias,
-            showLabels_ = showLabels
-        } = {}) {
-
-            architecture = architecture_;
-            showBias = showBias_;
-            showLabels = showLabels_;
-
-            graph.nodes = architecture.map((layer_width, layer_index) => range(layer_width).map(node_index => { return { 'id': layer_index + '_' + node_index, 'layer': layer_index, 'node_index': node_index } }));
-            graph.links = pairWise(graph.nodes).map((nodes) => nodes[0].map(left => nodes[1].map(right => { return right.node_index >= 0 ? { 'id': left.id + '-' + right.id, 'source': left.id, 'target': right.id, 'weight': randomWeight() } : null })));
-            graph.nodes = flatten(graph.nodes);
-            graph.links = flatten(graph.links).filter(l => (l && (showBias ? (parseInt(l['target'].split('_')[0]) !== architecture.length - 1 ? (l['target'].split('_')[1] !== '0') : true) : true)));
-
-            let label = architecture.map((layer_width, layer_index) => { return { 'id': 'layer_' + layer_index + '_label', 'layer': layer_index, 'text': textFn(layer_index, layer_width) } });
-
-            link = link.data(graph.links, d => d.id);
-            link.exit().remove();
-            link = link.enter()
-                .insert("path", ".node")
-                .attr("class", "link")
-                .merge(link);
-
-            node = node.data(graph.nodes, d => d.id);
-            node.exit().remove();
-            node = node.enter()
-                .append("rect")
-                .attr("width", nodeDiameter)
-                .attr("height", nodeDiameter)
-                .attr("class", "node")
-                .attr("id", function (d) { return d.id; })
-                .merge(node);
-
-            text = text.data(label, d => d.id);
-            text.exit().remove();
-            text = text.enter()
-                .append("text")
-                .attr("class", "text")
-                .attr("dy", ".35em")
-                .style("font-size", nominal_text_size + "px")
-                .merge(text)
-                .text(function (d) { return (showLabels ? d.text : ""); });
-
-            style();
-        }
-
-        function redistribute({ betweenNodesInLayer_ = betweenNodesInLayer,
-            betweenLayers_ = betweenLayers} = {}) {
-
-            betweenNodesInLayer = betweenNodesInLayer_;
-            betweenLayers = betweenLayers_;
-
-            let layer_widths = architecture.map((layer_width, i) => layer_width * nodeDiameter + (layer_width - 1) * betweenNodesInLayer[i]);
-
-            largest_layer_width = Math.max(...layer_widths);
-
-            layer_offsets = layer_widths.map(layer_width => (largest_layer_width - layer_width) / 2);
-
-            let indices_from_id = (id) => id.split('_').map(x => parseInt(x));
-            
-            let x = (layer, node_index) => layer_offsets[layer] + node_index * (nodeDiameter + betweenNodesInLayer[layer]) + w / 2 - largest_layer_width / 2;
-            let y = (layer) => layer * (betweenLayers + nodeDiameter) + h/3 - (betweenLayers * layer_offsets.length / 3);
-
-            node.attr('x', function (d) { return x(d.layer, d.node_index) - nodeDiameter / 2; })
-                .attr('y', function (d) { return y(d.layer) - nodeDiameter / 2; });
-
-            link.attr("d", (d) => "M" + x(...indices_from_id(d.source)) + "," +
-                y(...indices_from_id(d.source)) + ", " +
-                x(...indices_from_id(d.target)) + "," +
-                y(...indices_from_id(d.target)));
-
-            text.attr("x", function (d) { return w / 2 + largest_layer_width / 2 + 20 })
-                .attr("y", function (d) { return y(d.layer) });
-
-        }
-
-        function style({ edgeWidthProportional_ = edgeWidthProportional,
-            edgeWidth_ = edgeWidth,
-            edgeOpacityProportional_ = edgeOpacityProportional,
-            edgeOpacity_ = edgeOpacity,
-            negativeEdgeColor_ = negativeEdgeColor,
-            positiveEdgeColor_ = positiveEdgeColor,
-            edgeColorProportional_ = edgeColorProportional,
-            defaultEdgeColor_ = defaultEdgeColor,
-            nodeDiameter_ = nodeDiameter,
-            nodeColor_ = nodeColor,
-            nodeBorderColor_ = nodeBorderColor,
-            showArrowheads_ = showArrowheads,
-            arrowheadStyle_ = arrowheadStyle} = {}) {
-            // Edge Width
-            edgeWidthProportional = edgeWidthProportional_;
-            edgeWidth = edgeWidth_;
-            weightedEdgeWidth = d3.scaleLinear().domain([0, 1]).range([0, edgeWidth]);
-            // Edge Opacity
-            edgeOpacityProportional = edgeOpacityProportional_;
-            edgeOpacity = edgeOpacity_;
-            // Edge Color
-            defaultEdgeColor = defaultEdgeColor_;
-            edgeColorProportional = edgeColorProportional_;
-            negativeEdgeColor = negativeEdgeColor_;
-            positiveEdgeColor = positiveEdgeColor_;
-            weightedEdgeColor = d3.scaleLinear().domain([-1, 0, 1]).range([negativeEdgeColor, "white", positiveEdgeColor]);
-            // Node Styles
-            nodeDiameter = nodeDiameter_;
-            nodeColor = nodeColor_;
-            nodeBorderColor = nodeBorderColor_;
-            // Arrowheads
-            showArrowheads = showArrowheads_;
-            arrowheadStyle = arrowheadStyle_;
-
-            link.style("stroke-width", function (d) {
-                if (edgeWidthProportional) { return weightedEdgeWidth(Math.abs(d.weight)); } else { return edgeWidth; }
-            });
-
-            link.style("stroke-opacity", function (d) {
-                if (edgeOpacityProportional) { return weightedEdgeOpacity(Math.abs(d.weight)); } else { return edgeOpacity; }
-            });
-
-            link.style("stroke", function (d) {
-                if (edgeColorProportional) { return weightedEdgeColor(d.weight); } else { return defaultEdgeColor; }
-            });
-
-            link.style("fill", "none");
-
-            link.attr('marker-end', showArrowheads ? "url(#arrow)" : '');
-            marker.attr('refX', nodeDiameter * 1.4 + 12);
-            arrowhead.style("fill", arrowheadStyle === 'empty' ? "none" : defaultEdgeColor);
-
-            node.style("fill", nodeColor);
-            node.style("stroke", nodeBorderColor);
-
-        }
-
-        function resize() {
-            w = window.innerWidth;
-            h = window.innerHeight;
-            svg.attr("width", w).attr("height", h);
-            redistribute();
-        }
-
-        d3.select(window).on("resize", resize);
-
-        resize();
-
-        /////////////////////////////////////////////////////////////////////////////
-        ///////    Return    ///////
-        /////////////////////////////////////////////////////////////////////////////
-
-        redraw();
-        redistribute();
-        style();
-    }, [architecture, showBias, showLabels]);
-
-    return (
-        <div id="graph-container">
-            <svg ref={svgRef} width="100%" height="100%" />
-        </div>
-    );
-}
 
 function IncDecButton({ labelText, valueText, onClickDec, onClickInc }) {
     return (
@@ -285,12 +65,19 @@ function Slider({ labelText, setState }) {
     );
 }
 
+const MODEL_FUNCTIONS = [
+    (x) => Math.pow(x, 2),
+    (x) => Math.sin(2*Math.PI*x) + Math.cos(3*Math.PI*x),
+    (x) => Math.log(x+1)*x,
+];
+
 function MLP() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
     const [neuronsInLayers, setNeuronsInLayers] = useState([1]);
     const [epochs, setEpochs] = useState(500);
     const [showBias, setShowBias] = useState(false);
     const [showLabels, setShowLabels] = useState(true);
+    const [modelFunctionIdx, setModelFunctionIdx] = useState(0);
 
     const layerCountDec = () => {
         setHiddenLayers(prev => (prev > 1 ? prev - 1 : 1));
@@ -332,8 +119,15 @@ function MLP() {
         model.add(tf.layers.dense({ units: 1 }));
         model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
 
-        const xs = tf.tensor2d([0, 1, 2, 3, 4, 5], [6, 1]);
-        const ys = tf.tensor2d([0, 2, 4, 6, 8, 10], [6, 1]);
+        // const xs = tf.tensor2d([0, 1, 2, 3, 4, 5], [6, 1]);
+        // const ys = tf.tensor2d([0, 2, 4, 6, 8, 10], [6, 1]);
+        const x_vals = []
+        if(modelFunctionIdx === 1) {
+            x_vals = Array(100).fill().map((_,i) => (i-50)/10);
+        }
+        const y_vals = x_vals.map(MODEL_FUNCTIONS[modelFunctionIdx]);
+        const xs = tf.tensor2d(x_vals);
+        const ys = tf.tensor2d(y_vals);
 
         await model.fit(xs, ys, { epochs: epochs });
 
@@ -343,7 +137,7 @@ function MLP() {
     return (
         <div className="grid grid-cols-6 gap-4 overflow-hidden">
             <div className="col-span-4 flex justify-center items-center">
-                <FCNNComponent architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} />
+                <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} />
             </div>
             <div className="col-span-2 m-4 p-6 bg-gray-100 border border-gray-300">
                 <h1 className="text-xl font-bold mb-4">Settings</h1>
@@ -368,7 +162,3 @@ function MLP() {
 }
 
 export default MLP;
-
-const range = (n) => Array.from({ length: n }, (v, k) => k);
-const flatten = (arr) => arr.reduce((flat, toFlatten) => flat.concat(Array.isArray(toFlatten) ? flatten(toFlatten) : toFlatten), []);
-const pairWise = (arr) => arr.slice(0, -1).map((e, i) => [e, arr[i + 1]]);
