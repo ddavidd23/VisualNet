@@ -7,14 +7,13 @@ export default function MLPDiagram({ architecture, showBias, showLabels }) {
 
     useEffect(() => {
         const svg = d3.select(svgRef.current).attr("xmlns", "http://www.w3.org/2000/svg");
-        // console.log(`ref: ${svgRef}`);
         svg.selectAll("*").remove();
         const g = svg.append("g");
 
         let randomWeight = () => Math.random() * 2 - 1;
 
-        var w = window.innerWidth/2;
-        var h = window.innerHeight/2;
+        var w = window.innerWidth;
+        var h = window.innerHeight;
 
         var edgeWidthProportional = false;
         var edgeWidth = 0.5;
@@ -126,7 +125,7 @@ export default function MLPDiagram({ architecture, showBias, showLabels }) {
             let indices_from_id = (id) => id.split('_').map(x => parseInt(x));
             
             let x = (layer, node_index) => layer_offsets[layer] + node_index * (nodeDiameter + betweenNodesInLayer[layer]) + w / 2 - largest_layer_width / 2;
-            let y = (layer) => layer * (betweenLayers + nodeDiameter) + h/3 - (betweenLayers * layer_offsets.length / 3);
+            let y = (layer) => layer * (betweenLayers + nodeDiameter) + h/3 - (betweenLayers * layer_offsets.length / 4) * 3/2;
 
             node.attr('x', function (d) { return x(d.layer, d.node_index) - nodeDiameter / 2; })
                 .attr('y', function (d) { return y(d.layer) - nodeDiameter / 2; });
@@ -199,8 +198,8 @@ export default function MLPDiagram({ architecture, showBias, showLabels }) {
         }
 
         function resize() {
-            w = window.innerWidth/2;
-            h = window.innerHeight;
+            w = window.innerWidth / 3;
+            h = window.innerHeight * 2/3;
             svg.attr("width", w).attr("height", h);
             redistribute();
         }
@@ -220,7 +219,7 @@ export default function MLPDiagram({ architecture, showBias, showLabels }) {
 
     return (
         // <div id="graph-container">
-        <svg ref={svgRef}/>
+        <svg ref={svgRef} className="h-max"/>
         // </div>
     );
 }
