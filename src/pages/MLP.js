@@ -6,29 +6,27 @@ import MLPDiagram from '../comps/MLPDiagram';
 import IncDecButton from '../comps/IncDecButton';
 import Slider from '../comps/Slider';
 
-
-
 const MODEL_FUNCTIONS = [
     (x) => Math.pow(x, 2),
-    (x) => Math.sin(2*Math.PI*x) + Math.cos(3*Math.PI*x),
-    (x) => Math.log(x+1)*x,
+    (x) => Math.sin(2 * Math.PI * x) + Math.cos(3 * Math.PI * x),
+    (x) => Math.log(x + 1) * x,
 ];
 
-const data = [
+const evaluation = [
     { x: 0, y: 0 },
     { x: 0.1, y: 0.2 },
     { x: 0.2, y: 0.1 },
-    { x: 0.3, y: 0.2 },
+    { x: 0.3, y: 10 },
     { x: 0.4, y: 0.1 },
-  ];
+];
 
-  const WIDTH        = 400;
-  const HEIGHT       = 300;
-  const MARGIN       = { top: 10, right: 10, bottom: 20, left: 30 };
-  const INNER_WIDTH  = WIDTH - MARGIN.left - MARGIN.right;
-  const INNER_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
+const WIDTH = 600;
+const HEIGHT = 500;
+const MARGIN = { top: 10, right: 10, bottom: 20, left: 30 };
+const INNER_WIDTH = WIDTH - MARGIN.left - MARGIN.right;
+const INNER_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
 
-  function Graph() {
+function Graph({ modelFunctionIdx, evaluation }) {
     const svgRef = useRef();
 
     useEffect(() => {
@@ -43,12 +41,23 @@ const data = [
             .attr('transform', 'translate(' + MARGIN.left + ',' + MARGIN.top + ')');
 
         // scales, axes
-        const xScale = d3.scaleLinear()
-            .domain([0, d3.max(data, d => d.x)])
-            .range([0, INNER_WIDTH]);
-        const yScale = d3.scaleLinear()
-            .domain([0, d3.max(data, d => d.y)])
-            .range([INNER_HEIGHT, 0]);
+        let xScale, yScale, xVals;
+
+        if (modelFunctionIdx === 0) {
+            xScale = d3.scaleLinear()
+                .domain([-4, 4])
+                .range([0, INNER_WIDTH]);
+            yScale = d3.scaleLinear()
+                .domain([0, 17])
+                .range([INNER_HEIGHT, 0]);
+            xVals = Array(101).fill().map((_, i) => (i - 50) / 10);
+        }
+
+        const modelData = xVals.map((x) => ({
+            x: x,
+            y: MODEL_FUNCTIONS[modelFunctionIdx](x)
+        }));
+
         const xAxis = d3.axisBottom(xScale).ticks(10);
         const yAxis = d3.axisLeft(yScale).ticks(10);
         const xAxisGrid = d3.axisBottom(xScale).tickSize(-INNER_HEIGHT).tickFormat('').ticks(10);
@@ -61,6 +70,7 @@ const data = [
         g.append('g')
             .attr('class', 'y axis-grid')
             .call(yAxisGrid);
+
         // Create axes.
         g.append('g')
             .attr('class', 'x axis')
@@ -71,22 +81,34 @@ const data = [
             .call(yAxis);
 
         // line
-        const myLine = d3.line()
+        const modelLine = d3.line()
             .x((d) => xScale(d.x))
             .y((d) => yScale(d.y))
             .curve(d3.curveCardinal);
-        g.selectAll(".line")
-            .data([data])
+        g.selectAll(".model-line")
+            .data([modelData])
             .join("path")
-            .attr("class", "line")
-            .attr("d", myLine)
+            .attr("class", "model-line")
+            .attr("d", modelLine)
             .attr("fill", "none")
-            .attr("stroke", "#00bfa6");
-    }, [data]);
+            .attr("stroke", "#3B82F6");
+
+        const evalLine = d3.line()
+            .x((d) => xScale(d.x))
+            .y((d) => yScale(d.y))
+            .curve(d3.curveCardinal);
+        g.selectAll(".eval-line")
+            .data([evaluation])
+            .join("path")
+            .attr("class", "eval-line")
+            .attr("d", evalLine)
+            .attr("fill", "none")
+            .attr("stroke", "#3B8255");
+    }, [modelFunctionIdx, evaluation]);
 
     return (
         <svg ref={svgRef}></svg>
-    )
+    );
 }
 
 function MLP() {
@@ -137,17 +159,14 @@ function MLP() {
         model.add(tf.layers.dense({ units: 1 }));
         model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
 
-        // const xs = tf.tensor2d([0, 1, 2, 3, 4, 5], [6, 1]);
-        // const ys = tf.tensor2d([0, 2, 4, 6, 8, 10], [6, 1]);
-        if(modelFunctionIdx === 0) {
-            var x_vals = Array(101).fill().map((_,i) => (i-50)/10);
+        let x_vals;
+        if (modelFunctionIdx === 0) {
+            x_vals = Array(101).fill().map((_, i) => (i - 50) / 10);
         }
-        console.log(x_vals);
+
         const y_vals = x_vals.map(MODEL_FUNCTIONS[modelFunctionIdx]);
-        const xs = tf.tensor2d(x_vals, [x_vals.length,1]);
-        const ys = tf.tensor2d(y_vals, [y_vals.length,1]);
-        console.log(`xs: ${xs}`);
-        console.log(`ys: ${ys}`);
+        const xs = tf.tensor2d(x_vals, [x_vals.length, 1]);
+        const ys = tf.tensor2d(y_vals, [y_vals.length, 1]);
 
         await model.fit(xs, ys, { epochs: epochs });
 
@@ -157,7 +176,7 @@ function MLP() {
     return (
         <div className="flex flex-row">
             <div className="m-4">
-                <Graph />
+                <Graph modelFunctionIdx={modelFunctionIdx} evaluation={evaluation} />
             </div>
             <div className="m-4">
                 <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} />
