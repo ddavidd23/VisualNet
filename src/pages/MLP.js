@@ -14,7 +14,7 @@ const MODEL_FUNCTIONS = [
 
 const MODEL_DOMAINS = [
     Array(1001).fill().map((_, i) => (i - 500) / 100)
-]
+];
 
 const WIDTH = 500;
 const HEIGHT = 500;
@@ -22,9 +22,8 @@ const MARGIN = { top: 10, right: 10, bottom: 20, left: 30 };
 const INNER_WIDTH = WIDTH - MARGIN.left - MARGIN.right;
 const INNER_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
 
-function Graph({ modelFunctionIdx, model }) {
+function Graph({ modelFunctionIdx, predictions }) {
     const svgRef = useRef();
-    const [evaluation, setEvaluation] = useState([]);
 
     useEffect(() => {
         const svg = d3.select(svgRef.current)
@@ -49,24 +48,12 @@ function Graph({ modelFunctionIdx, model }) {
                 .range([INNER_HEIGHT, 0]);
         }
 
-        const xVals = MODEL_DOMAINS[modelFunctionIdx]
+        const xVals = MODEL_DOMAINS[modelFunctionIdx];
 
         const modelData = xVals.map((x) => ({
             x: x,
             y: MODEL_FUNCTIONS[modelFunctionIdx](x)
         }));
-
-        if (model) {
-            const xs = tf.tensor2d(xVals, [xVals.length, 1]);
-            const ys = model.predict(xs);
-            ys.array().then(predictions => {
-                const evalData = xVals.map((x, i) => ({
-                    x: x,
-                    y: predictions[i][0]
-                }));
-                setEvaluation(evalData);
-            });
-        }
 
         const xAxis = d3.axisBottom(xScale).ticks(10);
         const yAxis = d3.axisLeft(yScale).ticks(10);
@@ -103,18 +90,20 @@ function Graph({ modelFunctionIdx, model }) {
             .attr("fill", "none")
             .attr("stroke", "#3B82F6");
 
-        const evalLine = d3.line()
-            .x((d) => xScale(d.x))
-            .y((d) => yScale(d.y))
-            .curve(d3.curveCardinal);
-        g.selectAll(".eval-line")
-            .data([evaluation])
-            .join("path")
-            .attr("class", "eval-line")
-            .attr("d", evalLine)
-            .attr("fill", "none")
-            .attr("stroke", "#3B8255");
-    }, [modelFunctionIdx, model, evaluation]);
+        if (predictions) {
+            const evalLine = d3.line()
+                .x((d) => xScale(d.x))
+                .y((d) => yScale(d.y))
+                .curve(d3.curveCardinal);
+            g.selectAll(".eval-line")
+                .data([predictions])
+                .join("path")
+                .attr("class", "eval-line")
+                .attr("d", evalLine)
+                .attr("fill", "none")
+                .attr("stroke", "#3B8255");
+        }
+    }, [modelFunctionIdx, predictions]);
 
     return (
         <svg ref={svgRef}></svg>
@@ -129,6 +118,7 @@ function MLP() {
     const [showLabels, setShowLabels] = useState(true);
     const [modelFunctionIdx, setModelFunctionIdx] = useState(0);
     const [model, setModel] = useState();
+    const [predictions, setPredictions] = useState();
 
     const layerCountDec = () => {
         setHiddenLayers(prev => (prev > 1 ? prev - 1 : 1));
@@ -181,7 +171,15 @@ function MLP() {
             epochs: epochs,
             callbacks: {
                 onEpochEnd: async (epoch, logs) => {
-                    if(epoch%10 === 0) { 
+                    if (epoch % 10 === 0) {
+                        const yPred = model.predict(xs);
+                        yPred.array().then(y => {
+                            const predObj = xVals.map((x, i) => ({
+                                x: x,
+                                y: y[i][0]
+                            }));
+                            setPredictions(predObj);
+                        });
                         console.log("onEpochEnd" + epoch + JSON.stringify(logs));
                     }
                 }
@@ -195,7 +193,7 @@ function MLP() {
     return (
         <div className="flex flex-row">
             <div className="m-4">
-                <Graph modelFunctionIdx={modelFunctionIdx} model={model} />
+                <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
             </div>
             <div className="m-4">
                 <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} />
