@@ -125,7 +125,7 @@ export default function MLPDiagram({ architecture, showBias, showLabels }) {
             let indices_from_id = (id) => id.split('_').map(x => parseInt(x));
             
             let x = (layer, node_index) => layer_offsets[layer] + node_index * (nodeDiameter + betweenNodesInLayer[layer]) + w / 2 - largest_layer_width / 2;
-            let y = (layer) => layer * (betweenLayers + nodeDiameter) + h/3 - (betweenLayers * layer_offsets.length / 4);
+            let y = (layer) => layer * (betweenLayers + nodeDiameter) + h/3 - (betweenLayers * layer_offsets.length / 4) * 3/2;
 
             node.attr('x', function (d) { return x(d.layer, d.node_index) - nodeDiameter / 2; })
                 .attr('y', function (d) { return y(d.layer) - nodeDiameter / 2; });
@@ -198,8 +198,8 @@ export default function MLPDiagram({ architecture, showBias, showLabels }) {
         }
 
         function resize() {
-            w = window.innerWidth/2;
-            h = window.innerHeight - 600;
+            w = window.innerWidth / 3;
+            h = window.innerHeight * 2/3;
             svg.attr("width", w).attr("height", h);
             redistribute();
         }
