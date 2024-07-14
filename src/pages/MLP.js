@@ -12,9 +12,9 @@ import Header from '../comps/Header';
 import * as Constants from '../Constants';
 
 const options = [
-    { value: 0, label: "test1" },
-    { value: 1, label: "test2" },
-    { value: 2, label: "test3" }
+    { value: 0, label: "x^2" },
+    { value: 1, label: "sin(2pi x) + cos(3pi x)" },
+    { value: 2, label: "x log(x + 1)" }
 ]
 
 function FunctionSelect({ labelText, onChange }) {
@@ -69,22 +69,27 @@ function MLP() {
         });
     };
 
-    const createModel = async () => {
+    const initializeModel = () => {
         const model = tf.sequential();
         model.add(tf.layers.dense({ units: neuronsInLayers[0], inputShape: [1], activation: 'relu' }));
-        console.log(`hidden layers: ${hiddenLayers}`);
         for (let i = 0; i < hiddenLayers; i++) {
             model.add(tf.layers.dense({ units: neuronsInLayers[i], activation: 'relu' }));
         }
         model.add(tf.layers.dense({ units: 1 }));
         model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
+        return model;
+    };
 
+    const trainModel = async () => {
+        if (!model) {
+            setModel(initializeModel());
+        }
+    
         const xVals = Constants.MODEL_DOMAINS[modelFunctionIdx];
-
         const yVals = xVals.map(Constants.MODEL_FUNCTIONS[modelFunctionIdx]);
         const xs = tf.tensor2d(xVals, [xVals.length, 1]);
         const ys = tf.tensor2d(yVals, [yVals.length, 1]);
-
+    
         await model.fit(xs, ys, {
             epochs: epochs,
             callbacks: {
@@ -101,14 +106,16 @@ function MLP() {
                 }
             }
         });
-        setModel(model);
-
+    
         alert('Model training complete!');
     };
 
     useEffect(() => {
-        console.log(`modelFunctionIdx: ${modelFunctionIdx}`);
-    }, [modelFunctionIdx]);
+        if (!model || hiddenLayers !== model.layers.length - 2 || 
+            !neuronsInLayers.every((neurons, i) => model.layers[i + 1].units === neurons)) {
+            setModel(initializeModel());
+        }
+    }, [hiddenLayers, neuronsInLayers, modelFunctionIdx]);
 
     return (
         <div className="flex flex-col">
@@ -133,7 +140,7 @@ function MLP() {
                         <Slider labelText="Epochs" setState={setEpochs} />
                         <FunctionSelect labelText="Generating function" onChange={setModelFunctionIdx}/>
                         <button
-                            onClick={createModel}
+                            onClick={trainModel}
                             className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                         >
                             Train Model

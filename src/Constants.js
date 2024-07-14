@@ -8,7 +8,8 @@ export const MODEL_FUNCTIONS = [
 
 export const MODEL_DOMAINS = [
     Array(401).fill().map((_,i) => (i - 200) / 50),
-    Array(501).fill().map((_,i) => (i - 250) / 250)
+    Array(501).fill().map((_,i) => (i - 250) / 250),
+    Array(478).fill().map((_,i) => (i - 100) / 200)
 ];
 
 // export const GRAPH_SCALES = (innerWidth) [

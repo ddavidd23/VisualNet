@@ -64,14 +64,17 @@ export default function MLPDiagram({ architecture, showBias }) {
         ///////    Methods    ///////
         /////////////////////////////////////////////////////////////////////////////
 
-        function redraw({ architecture_ = architecture } = {}) {
+        function redraw({ architecture_ = architecture,
+            showBias_ = showBias
+        } = {}) {
 
             architecture = architecture_;
+            showBias = showBias_;
 
             graph.nodes = architecture.map((layer_width, layer_index) => range(layer_width).map(node_index => { return { 'id': layer_index + '_' + node_index, 'layer': layer_index, 'node_index': node_index } }));
             graph.links = pairWise(graph.nodes).map((nodes) => nodes[0].map(left => nodes[1].map(right => { return right.node_index >= 0 ? { 'id': left.id + '-' + right.id, 'source': left.id, 'target': right.id, 'weight': randomWeight() } : null })));
             graph.nodes = flatten(graph.nodes);
-            graph.links = flatten(graph.links).filter(l => (l && (parseInt(l['target'].split('_')[0]) !== architecture.length - 1 ? (l['target'].split('_')[1] !== '0') : true)));
+            graph.links = flatten(graph.links).filter(l => (l && (showBias ? (parseInt(l['target'].split('_')[0]) !== architecture.length - 1 ? (l['target'].split('_')[1] !== '0') : true) : true)));
 
             let label = architecture.map((layer_width, layer_index) => { return { 'id': 'layer_' + layer_index + '_label', 'layer': layer_index, 'text': textFn(layer_index, layer_width) } });
 
