@@ -45,6 +45,13 @@ export default function Graph({ modelFunctionIdx, predictions }) {
             yScale = d3.scaleLinear()
                 .domain([0, 17])
                 .range([innerHeight, 0]);
+        } else if (modelFunctionIdx === 1) {
+            xScale = d3.scaleLinear()
+                .domain([-1, 1])
+                .range([0, innerWidth]);
+            yScale = d3.scaleLinear()
+                .domain([-3, 3])
+                .range([innerHeight, 0]);
         }
 
         const xVals = Constants.MODEL_DOMAINS[modelFunctionIdx];

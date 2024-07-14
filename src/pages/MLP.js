@@ -34,7 +34,6 @@ function MLP() {
     const [neuronsInLayers, setNeuronsInLayers] = useState([1]);
     const [epochs, setEpochs] = useState(500);
     const [showBias, setShowBias] = useState(false);
-    const [showLabels, setShowLabels] = useState(true);
     const [modelFunctionIdx, setModelFunctionIdx] = useState(0);
     const [model, setModel] = useState();
     const [predictions, setPredictions] = useState();
@@ -107,6 +106,10 @@ function MLP() {
         alert('Model training complete!');
     };
 
+    useEffect(() => {
+        console.log(`modelFunctionIdx: ${modelFunctionIdx}`);
+    }, [modelFunctionIdx]);
+
     return (
         <div className="flex flex-col">
             <Header />
@@ -116,7 +119,7 @@ function MLP() {
                     <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
                 </div>
                 <div className="flex-1 m-4">
-                    <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} />
+                    <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} />
                 </div>
                 <div className="flex-1 m-4">
                     <div className="flex flex-col p-6 bg-gray-100 border border-gray-300">
