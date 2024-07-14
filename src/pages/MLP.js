@@ -108,8 +108,9 @@ function MLP() {
     };
 
     return (
-        <>
+        <div className="flex flex-col">
             <Header />
+            <div id="spacer" className="h-4"></div>
             <div className="flex flex-row justify-between">
                 <div className="flex-1 m-4">
                     <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
@@ -137,7 +138,7 @@ function MLP() {
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     );
     
     
