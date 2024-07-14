@@ -1,17 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from 'd3';
+import * as Constants from '../Constants';
 
 const MARGIN = { top: 10, right: 10, bottom: 20, left: 30 };
-
-const MODEL_FUNCTIONS = [
-    (x) => Math.pow(x, 2),
-    (x) => Math.sin(2 * Math.PI * x) + Math.cos(3 * Math.PI * x),
-    (x) => Math.log(x + 1) * x,
-];
-
-const MODEL_DOMAINS = [
-    Array(1001).fill().map((_, i) => (i - 500) / 100)
-];
 
 export default function Graph({ modelFunctionIdx, predictions }) {
     const svgRef = useRef();
@@ -56,11 +47,11 @@ export default function Graph({ modelFunctionIdx, predictions }) {
                 .range([innerHeight, 0]);
         }
 
-        const xVals = MODEL_DOMAINS[modelFunctionIdx];
+        const xVals = Constants.MODEL_DOMAINS[modelFunctionIdx];
 
         const modelData = xVals.map((x) => ({
             x: x,
-            y: MODEL_FUNCTIONS[modelFunctionIdx](x)
+            y: Constants.MODEL_FUNCTIONS[modelFunctionIdx](x)
         }));
 
         const xAxis = d3.axisBottom(xScale).ticks(10);

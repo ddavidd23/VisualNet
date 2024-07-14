@@ -8,15 +8,7 @@ import Slider from '../comps/Slider';
 import Graph from '../comps/Graph';
 import Header from '../comps/Header';
 
-const MODEL_FUNCTIONS = [
-    (x) => Math.pow(x, 2),
-    (x) => Math.sin(2 * Math.PI * x) + Math.cos(3 * Math.PI * x),
-    (x) => Math.log(x + 1) * x,
-];
-
-const MODEL_DOMAINS = [
-    Array(1001).fill().map((_, i) => (i - 500) / 100)
-];
+import * as Constants from '../Constants';
 
 function MLP() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
@@ -69,9 +61,9 @@ function MLP() {
         model.add(tf.layers.dense({ units: 1 }));
         model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
 
-        const xVals = MODEL_DOMAINS[modelFunctionIdx];
+        const xVals = Constants.MODEL_DOMAINS[modelFunctionIdx];
 
-        const yVals = xVals.map(MODEL_FUNCTIONS[modelFunctionIdx]);
+        const yVals = xVals.map(Constants.MODEL_FUNCTIONS[modelFunctionIdx]);
         const xs = tf.tensor2d(xVals, [xVals.length, 1]);
         const ys = tf.tensor2d(yVals, [yVals.length, 1]);
 
