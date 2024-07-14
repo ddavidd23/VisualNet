@@ -6,6 +6,7 @@ import MLPDiagram from '../comps/MLPDiagram';
 import IncDecButton from '../comps/IncDecButton';
 import Slider from '../comps/Slider';
 import Graph from '../comps/Graph';
+import Header from '../comps/Header';
 
 const MODEL_FUNCTIONS = [
     (x) => Math.pow(x, 2),
@@ -96,33 +97,40 @@ function MLP() {
     };
 
     return (
-        <div className="flex flex-row">
-            <div className="m-4">
-                <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
-            </div>
-            <div className="m-4">
-                <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} />
-            </div>
-            <div className="flex flex-col m-4 ml-auto p-6 bg-gray-100 border border-gray-300 h-2/4 w-full">
-                <h1 className="text-xl font-bold mb-4">Settings</h1>
-                <h2 className="font-bold mb-2">Architecture</h2>
-                <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
-                <div>
-                    {Array.from({ length: hiddenLayers }, (_, idx) => (
-                        <IncDecButton key={idx} labelText={`Neurons in layer ${idx + 1}`} valueText={neuronsInLayers[idx]} onClickDec={() => neuronCountDec(idx)} onClickInc={() => neuronCountInc(idx)} />
-                    ))}
+        <>
+            <Header />
+            <div className="flex flex-row justify-between">
+                <div className="flex-1 m-4">
+                    <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
                 </div>
-                <h2 className="font-bold mb-2">Hyperparameters</h2>
-                <Slider labelText="Epochs" setState={setEpochs} />
-                <button
-                    onClick={createModel}
-                    className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                >
-                    Train Model
-                </button>
+                <div className="flex-1 m-4">
+                    <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} showLabels={showLabels} />
+                </div>
+                <div className="flex-1 m-4">
+                    <div className="flex flex-col p-6 bg-gray-100 border border-gray-300">
+                        <h1 className="text-xl font-bold mb-4">Settings</h1>
+                        <h2 className="font-bold mb-2">Architecture</h2>
+                        <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
+                        <div>
+                            {Array.from({ length: hiddenLayers }, (_, idx) => (
+                                <IncDecButton key={idx} labelText={`Neurons in layer ${idx + 1}`} valueText={neuronsInLayers[idx]} onClickDec={() => neuronCountDec(idx)} onClickInc={() => neuronCountInc(idx)} />
+                            ))}
+                        </div>
+                        <h2 className="font-bold mb-2">Hyperparameters</h2>
+                        <Slider labelText="Epochs" setState={setEpochs} />
+                        <button
+                            onClick={createModel}
+                            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                        >
+                            Train Model
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
+        </>
     );
+    
+    
 }
 
 export default MLP;
