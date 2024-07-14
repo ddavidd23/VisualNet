@@ -33,7 +33,7 @@ function MLP() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
     const [neuronsInLayers, setNeuronsInLayers] = useState([1]);
     const [epochs, setEpochs] = useState(500);
-    const [showBias, setShowBias] = useState(false);
+    const [showBias, setShowBias] = useState(true);
     const [modelFunctionIdx, setModelFunctionIdx] = useState(0);
     const [model, setModel] = useState();
     const [predictions, setPredictions] = useState();

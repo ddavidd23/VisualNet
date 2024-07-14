@@ -10,7 +10,7 @@ export default function Graph({ modelFunctionIdx, predictions }) {
 
     useEffect(() => {
         const updateDimensions = () => {
-            const width = window.innerWidth / 3;
+            const width = window.innerWidth * 7 / 24;
             const height = width;
             setDimensions({ width, height });
         };
