@@ -1,30 +1,33 @@
-import React, { useEffect, useRef } from "react";
-import * as tf from "@tensorflow/tfjs";
+import React, { useEffect, useRef, useState } from "react";
 import * as d3 from 'd3';
+import * as Constants from '../Constants';
 
-const WIDTH = 500;
-const HEIGHT = 500;
 const MARGIN = { top: 10, right: 10, bottom: 20, left: 30 };
-const INNER_WIDTH = WIDTH - MARGIN.left - MARGIN.right;
-const INNER_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
-
-const MODEL_FUNCTIONS = [
-    (x) => Math.pow(x, 2),
-    (x) => Math.sin(2 * Math.PI * x) + Math.cos(3 * Math.PI * x),
-    (x) => Math.log(x + 1) * x,
-];
-
-const MODEL_DOMAINS = [
-    Array(1001).fill().map((_, i) => (i - 500) / 100)
-];
 
 export default function Graph({ modelFunctionIdx, predictions }) {
     const svgRef = useRef();
+    const [dimensions, setDimensions] = useState({ width: 500, height: 500 });
 
     useEffect(() => {
+        const updateDimensions = () => {
+            const width = window.innerWidth / 3;
+            const height = width;
+            setDimensions({ width, height });
+        };
+
+        updateDimensions();
+        window.addEventListener("resize", updateDimensions);
+        return () => window.removeEventListener("resize", updateDimensions);
+    }, []);
+
+    useEffect(() => {
+        const { width, height } = dimensions;
+        const innerWidth = width - MARGIN.left - MARGIN.right;
+        const innerHeight = height - MARGIN.top - MARGIN.bottom;
+
         const svg = d3.select(svgRef.current)
-            .attr('width', WIDTH)
-            .attr('height', HEIGHT);
+            .attr('width', width)
+            .attr('height', height);
 
         // Clear previous content
         svg.selectAll("*").remove();
@@ -38,27 +41,27 @@ export default function Graph({ modelFunctionIdx, predictions }) {
         if (modelFunctionIdx === 0) {
             xScale = d3.scaleLinear()
                 .domain([-4, 4])
-                .range([0, INNER_WIDTH]);
+                .range([0, innerWidth]);
             yScale = d3.scaleLinear()
                 .domain([0, 17])
-                .range([INNER_HEIGHT, 0]);
+                .range([innerHeight, 0]);
         }
 
-        const xVals = MODEL_DOMAINS[modelFunctionIdx];
+        const xVals = Constants.MODEL_DOMAINS[modelFunctionIdx];
 
         const modelData = xVals.map((x) => ({
             x: x,
-            y: MODEL_FUNCTIONS[modelFunctionIdx](x)
+            y: Constants.MODEL_FUNCTIONS[modelFunctionIdx](x)
         }));
 
         const xAxis = d3.axisBottom(xScale).ticks(10);
         const yAxis = d3.axisLeft(yScale).ticks(10);
-        const xAxisGrid = d3.axisBottom(xScale).tickSize(-INNER_HEIGHT).tickFormat('').ticks(10);
-        const yAxisGrid = d3.axisLeft(yScale).tickSize(-INNER_WIDTH).tickFormat('').ticks(10);
+        const xAxisGrid = d3.axisBottom(xScale).tickSize(-innerHeight).tickFormat('').ticks(10);
+        const yAxisGrid = d3.axisLeft(yScale).tickSize(-innerWidth).tickFormat('').ticks(10);
 
         g.append('g')
             .attr('class', 'x axis-grid')
-            .attr('transform', 'translate(0,' + INNER_HEIGHT + ')')
+            .attr('transform', 'translate(0,' + innerHeight + ')')
             .call(xAxisGrid);
         g.append('g')
             .attr('class', 'y axis-grid')
@@ -67,7 +70,7 @@ export default function Graph({ modelFunctionIdx, predictions }) {
         // Create axes.
         g.append('g')
             .attr('class', 'x axis')
-            .attr('transform', 'translate(0,' + INNER_HEIGHT + ')')
+            .attr('transform', 'translate(0,' + innerHeight + ')')
             .call(xAxis);
         g.append('g')
             .attr('class', 'y axis')
@@ -100,9 +103,11 @@ export default function Graph({ modelFunctionIdx, predictions }) {
                 .attr("stroke", "#3B8255")
                 .attr("d", evalLine);
         }
-    }, [modelFunctionIdx, predictions]);
+    }, [modelFunctionIdx, predictions, dimensions]);
 
     return (
-        <svg ref={svgRef}></svg>
+        <div className="graph-container">
+            <svg ref={svgRef}></svg>
+        </div>
     );
 }

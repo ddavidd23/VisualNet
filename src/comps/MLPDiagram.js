@@ -219,7 +219,7 @@ export default function MLPDiagram({ architecture, showBias, showLabels }) {
 
     return (
         // <div id="graph-container">
-        <svg ref={svgRef} className="h-max"/>
+        <svg ref={svgRef}/>
         // </div>
     );
 }
