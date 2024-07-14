@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as tf from "@tensorflow/tfjs";
 import * as d3 from 'd3';
+import Select from "react-select";
 
 import MLPDiagram from '../comps/MLPDiagram';
 import IncDecButton from '../comps/IncDecButton';
@@ -9,6 +10,24 @@ import Graph from '../comps/Graph';
 import Header from '../comps/Header';
 
 import * as Constants from '../Constants';
+
+const options = [
+    { value: 0, label: "test1" },
+    { value: 1, label: "test2" },
+    { value: 2, label: "test3" }
+]
+
+function FunctionSelect({ labelText, onChange }) {
+    return (
+        <div>
+            <h2>{labelText}</h2>
+            <Select 
+                options={options} 
+                onChange={(e) => onChange(e.value)}
+            />
+        </div>
+    )
+}
 
 function MLP() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
@@ -101,15 +120,14 @@ function MLP() {
                 <div className="flex-1 m-4">
                     <div className="flex flex-col p-6 bg-gray-100 border border-gray-300">
                         <h1 className="text-xl font-bold mb-4">Settings</h1>
-                        <h2 className="font-bold mb-2">Architecture</h2>
                         <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
                         <div>
                             {Array.from({ length: hiddenLayers }, (_, idx) => (
                                 <IncDecButton key={idx} labelText={`Neurons in layer ${idx + 1}`} valueText={neuronsInLayers[idx]} onClickDec={() => neuronCountDec(idx)} onClickInc={() => neuronCountInc(idx)} />
                             ))}
                         </div>
-                        <h2 className="font-bold mb-2">Hyperparameters</h2>
                         <Slider labelText="Epochs" setState={setEpochs} />
+                        <FunctionSelect labelText="Generating function" onChange={setModelFunctionIdx}/>
                         <button
                             onClick={createModel}
                             className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"

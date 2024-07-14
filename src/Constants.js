@@ -5,7 +5,7 @@ export const MODEL_FUNCTIONS = [
 ];
 
 export const MODEL_DOMAINS = [
-    Array(501).fill().map((_,i) => (i - 250) / 100),
-    Array(501).fill().map((_,i) => (i - 250) / 100)
+    Array(501).fill().map((_,i) => (i - 250) / 50),
+    Array(501).fill().map((_,i) => (i - 250) / 50)
 ];
 
