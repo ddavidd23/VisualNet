@@ -3,16 +3,34 @@ import * as tf from "@tensorflow/tfjs";
 import * as d3 from 'd3';
 import Select from "react-select";
 
-import MLPDiagram from '../comps/MLPDiagram';
+
 import IncDecButton from '../comps/IncDecButton';
 import Slider from '../comps/Slider';
 import Graph from '../comps/Graph';
 import Header from '../comps/Header';
-import FunctionSelect from '../comps/FunctionSelect';
 
 import * as Constants from '../Constants';
 
-function MLP() {
+const options = [
+    { value: 0, label: "x^2" },
+    { value: 1, label: "sin(2pi x) + cos(3pi x)" },
+    { value: 2, label: "x log(x + 1)" }
+]
+
+function FunctionSelect({ labelText, onChange }) {
+    return (
+        <div>
+            <p className="text-sm">{labelText}</p>
+            <Select 
+                options={options}
+                placeholder="x^2"
+                onChange={(e) => onChange(e.value)}
+            />
+        </div>
+    )
+}
+
+function MNIST() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
     const [neuronsInLayers, setNeuronsInLayers] = useState([1]);
     const [epochs, setEpochs] = useState(500);

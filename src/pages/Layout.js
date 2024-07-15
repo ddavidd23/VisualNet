@@ -1,19 +1,19 @@
 import { Link } from 'react-router-dom';
-import simpleMlpThumbnail from '../img/simple_mlp_thumbnail.png';
-import irisThumbnail from '../img/iris_thumbnail.png';
+import simpleMLPThumbnail from '../img/simple_mlp_thumbnail.png';
+import MNISTThumbnail from '../img/mnist_thumbnail.png';
 
 const PAGES = [
     {
         title: "Simple MLP",
         description: "Try your hand at building the best neural network to approximate a function!",
         link: "/mlp",
-        imgLink: simpleMlpThumbnail
+        imgLink: simpleMLPThumbnail
     },
     {
-        title: "Iris Classification",
-        description: "Build a neural network to classify over the classic iris dataset.",
-        link: "/iris",
-        imgLink: irisThumbnail
+        title: "MNIST Classification",
+        description: "Build a neural network to classify over the classic MNIST dataset",
+        link: "/mnist",
+        imgLink: MNISTThumbnail
     }
 ]
 
