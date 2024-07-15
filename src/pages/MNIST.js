@@ -12,7 +12,7 @@ import FunctionSelect from '../comps/FunctionSelect';
 
 import * as Constants from '../Constants';
 
-const MAX_IN_LAYER = 64
+const MAX_IN_LAYER = 728
 const MAX_LAYERS = 4
 
 function MNIST() {
@@ -36,11 +36,11 @@ function MNIST() {
 
     const initializeModel = () => {
         const model = tf.sequential();
-        model.add(tf.layers.dense({ units: neuronsInLayers[0], inputShape: [1], activation: 'relu' }));
-        for (let i = 0; i < hiddenLayers; i++) {
+        model.add(tf.layers.dense({ units: neuronsInLayers[0], inputShape: [784], activation: 'relu' }));
+        for (let i = 1; i < hiddenLayers; i++) {
             model.add(tf.layers.dense({ units: neuronsInLayers[i], activation: 'relu' }));
         }
-        model.add(tf.layers.dense({ units: 1 }));
+        model.add(tf.layers.dense({ units: 10, activation: 'softmax' }));
         model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
         return model;
     };
@@ -87,13 +87,10 @@ function MNIST() {
             <Header headerText={"MNIST Classification"}/>
             <div id="spacer" className="h-4"></div>
             <div className="flex flex-row justify-between">
-                <div className="flex-1 m-4">
-                    <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
+                <div className="flex-1 m-4 flex justify-center border border-gray-300 h-1/2">
+                    <MNISTDiagram architecture={[728, ...neuronsInLayers, 10]} showBias={showBias} />
                 </div>
-                <div className="flex-1 m-4 flex justify-center">
-                    <MNISTDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} />
-                </div>
-                <div className="flex-1 m-4">
+                <div className="m-4 w-1/3">
                     <div className="flex flex-col p-6 gap-y-3 bg-gray-100 border border-gray-300">
                         <h1 className="text-xl font-bold">Settings</h1>
                         <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
@@ -116,7 +113,6 @@ function MNIST() {
                             max={2000} 
                             initial={epochs}
                         />
-                        <FunctionSelect labelText="Generating function" onChange={setModelFunctionIdx}/>
                         <button
                             onClick={trainModel}
                             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"

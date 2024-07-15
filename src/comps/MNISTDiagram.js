@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useMemo } from "react";
 import * as d3 from "d3";
 
+const INPUT_WIDTH_FACTOR = 16;
+const LINKS_FROM_INPUT_LAYER = 5; // Number of links from the input layer
+
 const MNISTDiagram = ({ architecture, showBias }) => {
     const svgRef = useRef(null);
 
     const config = useMemo(() => ({
         edgeWidth: 0.5,
-        nodeDiameter: 10,
+        nodeSize: 10,
         nodeColor: "#ffffff",
         nodeBorderColor: "#333333",
         betweenLayers: 60,
@@ -24,35 +27,49 @@ const MNISTDiagram = ({ architecture, showBias }) => {
         svg.selectAll("*").remove();
         const g = svg.append("g");
 
-        const { width, height } = setupDimensions();
-        const { graph, label } = createGraphData(architecture, showBias);
-        const { link, node, text } = setupGraphElements(g, graph, label);
+        const { width, height, viewBox } = setupDimensions();
+        const { graph } = createGraphData(architecture, showBias);
+        const { link, node } = setupGraphElements(g, graph);
 
         const scales = createScales(config);
         const marker = createArrowMarker(svg, config);
 
         function redraw() {
-            updateGraphElements(link, node, text, graph, label, config);
+            updateGraphElements(link, node, graph, config, architecture);
             style(link, node, marker, scales, config);
         }
 
         function redistribute() {
-            const { x, y, largestLayerWidth } = calculateNodePositions(architecture, width, height, config);
-            positionNodes(node, link, text, x, y, width, largestLayerWidth, config);
+            const { x, y, largestLayerWidth, diagramWidth, diagramHeight } = calculateNodePositions(architecture, width, height, config);
+            positionNodes(node, link, x, y, config);
+
+            // Center the diagram
+            const scale = Math.min(width / diagramWidth, height / diagramHeight) * 0.5; // 0.5 to add some padding
+            const translateX = (width - diagramWidth * scale) / 2;
+            const translateY = (height - diagramHeight * scale) - height * 0.1;
+            g.attr("transform", `translate(${width/2},${translateY}) scale(${scale})`);
         }
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.5, 4])  // Set min and max zoom levels
+            .on("zoom", (event) => {
+                const transform = event.transform;
+                const translateY = transform.y;
+                const scale = transform.k;
+                g.attr("transform", `translate(${width / 2}, ${translateY}) scale(${scale})`);
+            });
+
+        svg.call(zoom);
 
         function resize() {
-            const { width, height } = setupDimensions();
-            svg.attr("width", width).attr("height", height);
-
-            // Calculate vertical translation based on the number of layers
-            const numLayers = architecture.length;
-            const verticalTranslation = height / 2 - (numLayers * config.betweenLayers) / 2;
-            g.attr("transform", `translate(${width / 2}, ${verticalTranslation})`); // Center the group and move up as more layers are added
+            const { width, height, viewBox } = setupDimensions();
+            svg.attr("width", width)
+               .attr("height", height)
+               .attr("viewBox", viewBox);
 
             redistribute();
+            svg.call(zoom.transform, d3.zoomIdentity); // Reset zoom after redistribution
         }
-
 
         d3.select(window).on("resize", resize);
 
@@ -61,27 +78,34 @@ const MNISTDiagram = ({ architecture, showBias }) => {
         redistribute();
     }, [architecture, showBias, config]);
 
-    return <svg ref={svgRef} />;
+    return <svg ref={svgRef} preserveAspectRatio="xMidYMid meet" />;
 };
 
-// Helper functions
-const setupDimensions = () => ({
-    width: window.innerWidth * 0.4,
-    height: window.innerHeight * 2/3
-});
+const setupDimensions = () => {
+    const width = window.innerWidth * 0.7;
+    const height = window.innerHeight * 0.5;
+    return {
+        width,
+        height,
+        viewBox: `0 0 ${width} ${height}`
+    };
+};
 
 const createGraphData = (architecture, showBias) => {
-    const nodes = architecture.flatMap((layerWidth, layerIndex) => 
-        Array.from({ length: layerWidth }, (_, nodeIndex) => ({ 
-            id: `${layerIndex}_${nodeIndex}`, 
-            layer: layerIndex, 
-            node_index: nodeIndex 
-        }))
-    );
+    const nodes = architecture.flatMap((layerWidth, layerIndex) => {
+        if (layerIndex === 0) {
+            return [{ id: "0_0", layer: 0, node_index: 0 }];
+        }
+        return Array.from({ length: layerWidth }, (_, nodeIndex) => ({
+            id: `${layerIndex}_${nodeIndex}`,
+            layer: layerIndex,
+            node_index: nodeIndex
+        }));
+    });
 
     const links = [];
     for (let i = 0; i < architecture.length - 1; i++) {
-        for (let j = 0; j < architecture[i]; j++) {
+        for (let j = 0; j < (i === 0 ? LINKS_FROM_INPUT_LAYER : architecture[i]); j++) {
             for (let k = 0; k < architecture[i + 1]; k++) {
                 links.push({
                     id: `${i}_${j}-${i+1}_${k}`,
@@ -99,33 +123,14 @@ const createGraphData = (architecture, showBias) => {
         parseInt(link.target.split('_')[0]) === architecture.length - 1
     );
 
-    const label = architecture.map((layerWidth, layerIndex) => {
-        let text;
-        if (layerIndex === 0) {
-            text = "Input layer";
-        } else if (layerIndex === architecture.length - 1) {
-            text = "Output layer";
-        } else {
-            text = layerWidth === 1 ? "1 neuron" : `${layerWidth} neurons`;
-        }
-        
-        return { 
-            id: `layer_${layerIndex}_label`, 
-            layer: layerIndex, 
-            text: text
-        };
-    });
-
-    return { graph: { nodes, links: filteredLinks }, label };
+    return { graph: { nodes, links: filteredLinks } };
 };
 
-const setupGraphElements = (g, graph, label) => ({
+const setupGraphElements = (g, graph) => ({
     link: g.selectAll(".link").data(graph.links, d => d.id)
         .enter().insert("path", ".node").attr("class", "link"),
     node: g.selectAll(".node").data(graph.nodes, d => d.id)
-        .enter().append("rect").attr("class", "node"),
-    text: g.selectAll(".text").data(label, d => d.id)
-        .enter().append("text").attr("class", "text")
+        .enter().append("rect").attr("class", "node")
 });
 
 const createScales = ({ negativeEdgeColor, positiveEdgeColor }) => ({
@@ -147,45 +152,51 @@ const createArrowMarker = (svg, { defaultEdgeColor }) => {
     return marker;
 };
 
-const updateGraphElements = (link, node, text, graph, label, { nodeDiameter, nominalTextSize }) => {
+const updateGraphElements = (link, node, graph, { nodeSize }, architecture) => {
     link.data(graph.links, d => d.id);
     node.data(graph.nodes, d => d.id)
-        .attr("width", nodeDiameter)
-        .attr("height", nodeDiameter)
+        .attr("width", d => d.layer === 0 ? nodeSize * INPUT_WIDTH_FACTOR: nodeSize)
+        .attr("height", nodeSize)
         .attr("id", d => d.id);
-    text.data(label, d => d.id)
-        .attr("dy", ".35em")
-        .style("font-size", `${nominalTextSize}px`)
-        .text(d => d.text);
 };
 
-const calculateNodePositions = (architecture, width, height, { nodeDiameter, betweenLayers, betweenNodesInLayer }) => {
-    const layerWidths = architecture.map(layerWidth => layerWidth * nodeDiameter + (layerWidth - 1) * betweenNodesInLayer);
+const calculateNodePositions = (architecture, width, height, { nodeSize, betweenLayers, betweenNodesInLayer }) => {
+    const layerWidths = architecture.map((layerWidth, layerIndex) => {
+        if (layerIndex === 0) {
+            return nodeSize * INPUT_WIDTH_FACTOR;
+        }
+        return layerWidth * nodeSize + (layerWidth - 1) * betweenNodesInLayer;
+    });
     const largestLayerWidth = Math.max(...layerWidths);
     const layerOffsets = layerWidths.map(layerWidth => (largestLayerWidth - layerWidth) / 2);
 
-    const x = (layer, nodeIndex) => layerOffsets[layer] + nodeIndex * (nodeDiameter + betweenNodesInLayer) - largestLayerWidth / 2;
-    const y = layer => layer * (betweenLayers + nodeDiameter) - architecture.length * 15;
+    const x = (layer, nodeIndex) => {
+        if (layer === 0) {
+            return (nodeIndex + 1) * (nodeSize + betweenNodesInLayer) * (INPUT_WIDTH_FACTOR / LINKS_FROM_INPUT_LAYER) - nodeSize * INPUT_WIDTH_FACTOR * 0.75;
+        }
+        return layerOffsets[layer] + nodeIndex * (nodeSize + betweenNodesInLayer) - largestLayerWidth / 2;
+    };
+    const y = layer => layer * (betweenLayers + nodeSize) - architecture.length * 15;
 
-    return { x, y, largestLayerWidth };
+    const diagramWidth = largestLayerWidth;
+    const diagramHeight = (architecture.length - 1) * (betweenLayers + nodeSize);
+
+    return { x, y, largestLayerWidth, diagramWidth, diagramHeight };
 };
 
-const positionNodes = (node, link, text, x, y, width, largestLayerWidth, { nodeDiameter }) => {
-    node.attr('x', d => x(d.layer, d.node_index) - nodeDiameter / 2)
-        .attr('y', d => y(d.layer) - nodeDiameter / 2);
+const positionNodes = (node, link, x, y, { nodeSize }) => {
+    node.attr('x', d => x(d.layer, d.node_index) - nodeSize / 2)
+        .attr('y', d => y(d.layer) - nodeSize / 2);
 
     link.attr("d", d => {
         const [sourceLayer, sourceIndex] = d.source.split('_').map(Number);
         const [targetLayer, targetIndex] = d.target.split('_').map(Number);
         return `M${x(sourceLayer, sourceIndex)},${y(sourceLayer)} ${x(targetLayer, targetIndex)},${y(targetLayer)}`;
     });
-
-    text.attr("x", d => width / 2 + largestLayerWidth / 2 + 20)
-        .attr("y", d => y(d.layer));
 };
 
 const style = (link, node, marker, scales, config) => {
-    const { edgeWidth, nodeColor, nodeBorderColor, showArrowheads, arrowheadStyle, defaultEdgeColor, nodeDiameter } = config;
+    const { edgeWidth, nodeColor, nodeBorderColor, showArrowheads, arrowheadStyle, defaultEdgeColor, nodeSize } = config;
     const { weightedEdgeColor } = scales;
 
     link.style("stroke-width", edgeWidth)
@@ -194,7 +205,7 @@ const style = (link, node, marker, scales, config) => {
         .style("fill", "none")
         .attr('marker-end', showArrowheads ? "url(#arrow)" : '');
 
-    marker.attr('refX', nodeDiameter * 1.4 + 12);
+    marker.attr('refX', nodeSize * 1.4 + 12);
     marker.select("path").style("fill", arrowheadStyle === 'empty' ? "none" : defaultEdgeColor);
 
     node.style("fill", nodeColor)
