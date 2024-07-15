@@ -3,32 +3,17 @@ import * as tf from "@tensorflow/tfjs";
 import * as d3 from 'd3';
 import Select from "react-select";
 
-
+import MNISTDiagram from '../comps/MNISTDiagram';
 import IncDecButton from '../comps/IncDecButton';
 import Slider from '../comps/Slider';
 import Graph from '../comps/Graph';
 import Header from '../comps/Header';
+import FunctionSelect from '../comps/FunctionSelect';
 
 import * as Constants from '../Constants';
 
-const options = [
-    { value: 0, label: "x^2" },
-    { value: 1, label: "sin(2pi x) + cos(3pi x)" },
-    { value: 2, label: "x log(x + 1)" }
-]
-
-function FunctionSelect({ labelText, onChange }) {
-    return (
-        <div>
-            <p className="text-sm">{labelText}</p>
-            <Select 
-                options={options}
-                placeholder="x^2"
-                onChange={(e) => onChange(e.value)}
-            />
-        </div>
-    )
-}
+const MAX_IN_LAYER = 64
+const MAX_LAYERS = 4
 
 function MNIST() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
@@ -45,29 +30,8 @@ function MNIST() {
     };
 
     const layerCountInc = () => {
-        setHiddenLayers(prev => (prev < 6 ? prev + 1 : 6));
-        setNeuronsInLayers(prev => (prev.length < 6 ? [...prev, 1] : prev));
-    };
-
-    const neuronCountDec = (idx) => {
-        setNeuronsInLayers(prev => {
-            if (prev[idx] === 1) {
-                setHiddenLayers(prevLayers => (prevLayers > 1 ? prevLayers - 1 : 1));
-                return prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev;
-            } else {
-                const updated = [...prev];
-                updated[idx] = Math.max(updated[idx] - 1, 1);
-                return updated;
-            }
-        });
-    };
-
-    const neuronCountInc = (idx) => {
-        setNeuronsInLayers(prev => {
-            const updated = [...prev];
-            updated[idx] = Math.min(updated[idx] + 1, 6);
-            return updated;
-        });
+        setHiddenLayers(prev => (prev < MAX_LAYERS ? prev + 1 : MAX_LAYERS));
+        setNeuronsInLayers(prev => (prev.length < MAX_LAYERS ? [...prev, 1] : prev));
     };
 
     const initializeModel = () => {
@@ -120,25 +84,38 @@ function MNIST() {
 
     return (
         <div className="flex flex-col">
-            <Header />
+            <Header headerText={"MNIST Classification"}/>
             <div id="spacer" className="h-4"></div>
             <div className="flex flex-row justify-between">
                 <div className="flex-1 m-4">
                     <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
                 </div>
                 <div className="flex-1 m-4 flex justify-center">
-                    <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} />
+                    <MNISTDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} />
                 </div>
                 <div className="flex-1 m-4">
-                    <div className="flex flex-col gap-y-3 p-6 bg-gray-100 border border-gray-300">
+                    <div className="flex flex-col p-6 gap-y-3 bg-gray-100 border border-gray-300">
                         <h1 className="text-xl font-bold">Settings</h1>
                         <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
-                        <div>
-                            {Array.from({ length: hiddenLayers }, (_, idx) => (
-                                <IncDecButton key={idx} labelText={`Neurons in layer ${idx + 1}`} valueText={neuronsInLayers[idx]} onClickDec={() => neuronCountDec(idx)} onClickInc={() => neuronCountInc(idx)} />
-                            ))}
-                        </div>
-                        <Slider labelText="Epochs" setState={setEpochs} />
+                        {Array.from({ length: hiddenLayers }, (_, idx) => (
+                            <Slider 
+                                key={idx} 
+                                labelText={`Neurons in layer ${idx + 1}`} 
+                                setState={setNeuronsInLayers} 
+                                min={1} 
+                                max={MAX_IN_LAYER} 
+                                initial={neuronsInLayers[idx] || 1}
+                                index={idx}
+                            />
+                        ))}
+                        
+                        <Slider 
+                            labelText="Epochs" 
+                            setState={setEpochs} 
+                            min={1} 
+                            max={2000} 
+                            initial={epochs}
+                        />
                         <FunctionSelect labelText="Generating function" onChange={setModelFunctionIdx}/>
                         <button
                             onClick={trainModel}
@@ -155,4 +132,4 @@ function MNIST() {
     
 }
 
-export default MLP;
+export default MNIST;

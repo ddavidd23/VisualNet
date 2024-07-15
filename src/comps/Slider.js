@@ -1,7 +1,23 @@
 import React, { useState } from "react";
 
-export default function Slider({ labelText, setState }) {
-    const [value, setValue] = useState(500);
+export default function Slider({ labelText, setState, min, max, initial, index = null }) {
+    const [value, setValue] = useState(initial);
+
+    const handleChange = (e) => {
+        const newValue = parseInt(e.target.value);
+        setValue(newValue);
+        if (index !== null) {
+            // For array-based state (neurons in layers)
+            setState(prevState => {
+                const newState = [...prevState];
+                newState[index] = newValue;
+                return newState;
+            });
+        } else {
+            // For single-value state (epochs)
+            setState(newValue);
+        }
+    };
 
     return (
         <>
@@ -11,15 +27,14 @@ export default function Slider({ labelText, setState }) {
                     type="range"
                     id="price-range"
                     className="w-full"
-                    min="0" max="10000"
+                    min={min} max={max}
                     value={value}
-                    onChange={(e) => {
-                        setValue(e.target.value);
-                        setState(e.target.value);
-                    }}
+                    onChange={handleChange}
                 />
-                <div className="text-center -mt-2">
-                    <span className="text-sm text-center">{value}</span>
+                <div className="flex flex-row -mt-2">
+                    <span className="flex-1 text-sm text-gray-400 text-left">{min}</span>
+                    <span className="flex-1 text-sm text-center">{value}</span>
+                    <span className="flex-1 text-sm text-gray-400 text-right">{max}</span>
                 </div>
             </div>
         </>

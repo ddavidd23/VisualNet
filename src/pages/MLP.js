@@ -102,7 +102,7 @@ function MLP() {
 
     return (
         <div className="flex flex-col">
-            <Header />
+            <Header headerText={"Simple MLP"} />
             <div id="spacer" className="h-4"></div>
             <div className="flex flex-row justify-between">
                 <div className="flex-1 m-4">
