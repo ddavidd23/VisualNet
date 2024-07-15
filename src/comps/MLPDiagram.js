@@ -6,17 +6,16 @@ const MLPDiagram = ({ architecture, showBias }) => {
 
     const config = useMemo(() => ({
         edgeWidth: 0.5,
-        edgeOpacity: 1.0,
         nodeDiameter: 20,
         nodeColor: "#ffffff",
         nodeBorderColor: "#333333",
-        betweenLayers: 80,
+        betweenLayers: 60,
         betweenNodesInLayer: 10,
         showArrowheads: false,
         arrowheadStyle: "empty",
-        negativeEdgeColor: "#0000ff",
-        positiveEdgeColor: "#ff0000",
-        defaultEdgeColor: "#505050",
+        negativeEdgeColor: "#9E58B4",
+        positiveEdgeColor: "#3B82F6",
+        defaultEdgeColor: "#7174E2",
         nominalTextSize: 12
     }), []);
 
@@ -28,7 +27,7 @@ const MLPDiagram = ({ architecture, showBias }) => {
         const { width, height } = setupDimensions();
         const { graph, label } = createGraphData(architecture, showBias);
         const { link, node, text } = setupGraphElements(g, graph, label);
-        
+
         const scales = createScales(config);
         const marker = createArrowMarker(svg, config);
 
@@ -45,8 +44,15 @@ const MLPDiagram = ({ architecture, showBias }) => {
         function resize() {
             const { width, height } = setupDimensions();
             svg.attr("width", width).attr("height", height);
+
+            // Calculate vertical translation based on the number of layers
+            const numLayers = architecture.length;
+            const verticalTranslation = height / 2 - (numLayers * config.betweenLayers) / 2;
+            g.attr("transform", `translate(${width / 2}, ${verticalTranslation})`); // Center the group and move up as more layers are added
+
             redistribute();
         }
+
 
         d3.select(window).on("resize", resize);
 
@@ -93,11 +99,22 @@ const createGraphData = (architecture, showBias) => {
         parseInt(link.target.split('_')[0]) === architecture.length - 1
     );
 
-    const label = architecture.map((layerWidth, layerIndex) => ({ 
-        id: `layer_${layerIndex}_label`, 
-        layer: layerIndex, 
-        text: `${layerWidth} neurons` 
-    }));
+    const label = architecture.map((layerWidth, layerIndex) => {
+        let text;
+        if (layerIndex === 0) {
+            text = "Input layer";
+        } else if (layerIndex === architecture.length - 1) {
+            text = "Output layer";
+        } else {
+            text = layerWidth === 1 ? "1 neuron" : `${layerWidth} neurons`;
+        }
+        
+        return { 
+            id: `layer_${layerIndex}_label`, 
+            layer: layerIndex, 
+            text: text
+        };
+    });
 
     return { graph: { nodes, links: filteredLinks }, label };
 };
@@ -111,10 +128,8 @@ const setupGraphElements = (g, graph, label) => ({
         .enter().append("text").attr("class", "text")
 });
 
-const createScales = ({ edgeWidth, negativeEdgeColor, positiveEdgeColor }) => ({
-    weightedEdgeWidth: d3.scaleLinear().domain([0, 1]).range([0, edgeWidth]),
-    weightedEdgeOpacity: d3.scaleLinear().domain([0, 1]).range([0, 1]),
-    weightedEdgeColor: d3.scaleLinear().domain([-1, 0, 1]).range([negativeEdgeColor, "white", positiveEdgeColor])
+const createScales = ({ negativeEdgeColor, positiveEdgeColor }) => ({
+    weightedEdgeColor: d3.scaleLinear().domain([-1, 0, 1]).range([negativeEdgeColor, positiveEdgeColor])
 });
 
 const createArrowMarker = (svg, { defaultEdgeColor }) => {
@@ -149,8 +164,8 @@ const calculateNodePositions = (architecture, width, height, { nodeDiameter, bet
     const largestLayerWidth = Math.max(...layerWidths);
     const layerOffsets = layerWidths.map(layerWidth => (largestLayerWidth - layerWidth) / 2);
 
-    const x = (layer, nodeIndex) => layerOffsets[layer] + nodeIndex * (nodeDiameter + betweenNodesInLayer) + width / 2 - largestLayerWidth / 2;
-    const y = layer => layer * (betweenLayers + nodeDiameter) + height/3 - (betweenLayers * layerOffsets.length / 4) * 3/2;
+    const x = (layer, nodeIndex) => layerOffsets[layer] + nodeIndex * (nodeDiameter + betweenNodesInLayer);
+    const y = layer => layer * (betweenLayers + nodeDiameter);
 
     return { x, y, largestLayerWidth };
 };
@@ -170,12 +185,12 @@ const positionNodes = (node, link, text, x, y, width, largestLayerWidth, { nodeD
 };
 
 const style = (link, node, marker, scales, config) => {
-    const { edgeWidth, edgeOpacity, nodeColor, nodeBorderColor, showArrowheads, arrowheadStyle, defaultEdgeColor, nodeDiameter } = config;
-    const { weightedEdgeWidth, weightedEdgeOpacity, weightedEdgeColor } = scales;
+    const { edgeWidth, nodeColor, nodeBorderColor, showArrowheads, arrowheadStyle, defaultEdgeColor, nodeDiameter } = config;
+    const { weightedEdgeColor } = scales;
 
-    link.style("stroke-width", d => weightedEdgeWidth(Math.abs(d.weight)))
-        .style("stroke-opacity", d => weightedEdgeOpacity(Math.abs(d.weight)))
+    link.style("stroke-width", edgeWidth)
         .style("stroke", d => weightedEdgeColor(d.weight))
+        .style("stroke-opacity", 1)  // Ensure opacity is consistent
         .style("fill", "none")
         .attr('marker-end', showArrowheads ? "url(#arrow)" : '');
 

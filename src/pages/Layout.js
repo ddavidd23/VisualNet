@@ -1,4 +1,21 @@
 import { Link } from 'react-router-dom';
+import simpleMlpThumbnail from '../img/simple_mlp_thumbnail.png';
+import irisThumbnail from '../img/iris_thumbnail.png';
+
+const PAGES = [
+    {
+        title: "Simple MLP",
+        description: "Try your hand at building the best neural network to approximate a function!",
+        link: "/mlp",
+        imgLink: simpleMlpThumbnail
+    },
+    {
+        title: "Iris Classification",
+        description: "Build a neural network to classify over the classic iris dataset.",
+        link: "/iris",
+        imgLink: irisThumbnail
+    }
+]
 
 function Layout() {
     return (
@@ -15,17 +32,21 @@ function Layout() {
                     </h1>
                 </div>
             </nav>
-            <div className="flex flex-row mt-10 ml-5">
-                <Link to="/mlp" class="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-xl hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
-                    <img class="object-cover w-full rounded-t-lg h-96 md:h-auto md:w-48 md:rounded-none md:rounded-s-lg" src="/docs/images/blog/image-4.jpg" alt="" />
-                    <div class="flex flex-col justify-between p-4 leading-normal">
-                        <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Simple MLP</h5>
-                        <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">Try your hand at building the best neural network to approximate a function!</p>
+            <div className="flex flex-row mt-3">
+                {PAGES.map((page) => (
+                    <div className="flex flex-row mt-10 ml-5" key={page.link}>
+                        <Link to={page.link} className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-xl hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"> 
+                            <img className="object-cover scale-75 w-full rounded-t-lg h-96 md:h-auto md:w-48 md:rounded-none md:rounded-s-lg" src={page.imgLink} alt={page.title} />
+                            <div className="flex flex-col justify-between p-4 leading-normal">
+                                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{page.title}</h5>
+                                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">{page.description}</p>
+                            </div>
+                        </Link>
                     </div>
-                </Link>
+                ))}
             </div>
         </>
-    )
+    );
 }
 
 export default Layout;
