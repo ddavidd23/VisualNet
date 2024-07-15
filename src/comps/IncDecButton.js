@@ -2,8 +2,8 @@ import React from "react";
 
 export default function IncDecButton({ labelText, valueText, onClickDec, onClickInc }) {
     return (
-        <form className="mb-2">
-            <label className="block mb-2 text-sm">{labelText}</label>
+        <form>
+            <label className="block text-sm">{labelText}</label>
             <div className="flex items-center">
                 <button 
                     type="button"

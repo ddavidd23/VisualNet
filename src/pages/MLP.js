@@ -20,9 +20,10 @@ const options = [
 function FunctionSelect({ labelText, onChange }) {
     return (
         <div>
-            <h2>{labelText}</h2>
+            <p className="text-sm">{labelText}</p>
             <Select 
-                options={options} 
+                options={options}
+                placeholder="x^2"
                 onChange={(e) => onChange(e.value)}
             />
         </div>
@@ -33,7 +34,7 @@ function MLP() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
     const [neuronsInLayers, setNeuronsInLayers] = useState([1]);
     const [epochs, setEpochs] = useState(500);
-    const [showBias, setShowBias] = useState(false);
+    const [showBias, setShowBias] = useState(true);
     const [modelFunctionIdx, setModelFunctionIdx] = useState(0);
     const [model, setModel] = useState();
     const [predictions, setPredictions] = useState();
@@ -125,12 +126,12 @@ function MLP() {
                 <div className="flex-1 m-4">
                     <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
                 </div>
-                <div className="flex-1 m-4">
+                <div className="flex-1 m-4 flex justify-center">
                     <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} />
                 </div>
                 <div className="flex-1 m-4">
-                    <div className="flex flex-col p-6 bg-gray-100 border border-gray-300">
-                        <h1 className="text-xl font-bold mb-4">Settings</h1>
+                    <div className="flex flex-col gap-y-3 p-6 bg-gray-100 border border-gray-300">
+                        <h1 className="text-xl font-bold">Settings</h1>
                         <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
                         <div>
                             {Array.from({ length: hiddenLayers }, (_, idx) => (
@@ -141,7 +142,7 @@ function MLP() {
                         <FunctionSelect labelText="Generating function" onChange={setModelFunctionIdx}/>
                         <button
                             onClick={trainModel}
-                            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                         >
                             Train Model
                         </button>
