@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as tf from "@tensorflow/tfjs";
+import * as tfdata from "@tensorflow/tfjs-data";
 import * as d3 from 'd3';
 import Select from "react-select";
 
@@ -12,8 +13,8 @@ import FunctionSelect from '../comps/FunctionSelect';
 
 import * as Constants from '../Constants';
 
-const MAX_IN_LAYER = 728
-const MAX_LAYERS = 4
+const MAX_IN_LAYER = 728;
+const MAX_LAYERS = 4;
 
 function MNIST() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
@@ -41,37 +42,38 @@ function MNIST() {
             model.add(tf.layers.dense({ units: neuronsInLayers[i], activation: 'relu' }));
         }
         model.add(tf.layers.dense({ units: 10, activation: 'softmax' }));
-        model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
+        model.compile({ optimizer: 'adam', loss: 'sparseCategoricalCrossentropy', metrics: ['accuracy'] });
         return model;
+    };
+
+    const loadMNISTData = async () => {
+        const mnist = require('@tensorflow/tfjs-data').mnist;
+        const data = await mnist.load();
+        const { trainImages, trainLabels, testImages, testLabels } = data;
+        
+        const xTrain = trainImages.reshape([trainImages.shape[0], 784]);
+        const xTest = testImages.reshape([testImages.shape[0], 784]);
+
+        return { xTrain, yTrain: trainLabels, xTest, yTest: testLabels };
     };
 
     const trainModel = async () => {
         if (!model) {
             setModel(initializeModel());
         }
-    
-        const xVals = Constants.MODEL_DOMAINS[modelFunctionIdx];
-        const yVals = xVals.map(Constants.MODEL_FUNCTIONS[modelFunctionIdx]);
-        const xs = tf.tensor2d(xVals, [xVals.length, 1]);
-        const ys = tf.tensor2d(yVals, [yVals.length, 1]);
-    
-        await model.fit(xs, ys, {
+
+        const { xTrain, yTrain, xTest, yTest } = await loadMNISTData();
+
+        await model.fit(xTrain, yTrain, {
             epochs: epochs,
+            validationData: [xTest, yTest],
             callbacks: {
                 onEpochEnd: async (epoch, logs) => {
-                    const yPred = model.predict(xs);
-                    yPred.array().then(y => {
-                        const predObj = xVals.map((x, i) => ({
-                            x: x,
-                            y: y[i][0]
-                        }));
-                        setPredictions(predObj);
-                    });
-                    console.log("onEpochEnd" + epoch + JSON.stringify(logs));
+                    console.log(`Epoch ${epoch + 1}: loss = ${logs.loss}, accuracy = ${logs.acc}`);
                 }
             }
         });
-    
+
         alert('Model training complete!');
     };
 
@@ -84,7 +86,7 @@ function MNIST() {
 
     return (
         <div className="flex flex-col">
-            <Header headerText={"MNIST Classification"}/>
+            <Header headerText={"MNIST Classification"} />
             <div id="spacer" className="h-4"></div>
             <div className="flex flex-row justify-between">
                 <div className="flex-1 m-4 flex justify-center border border-gray-300 h-1/2">
@@ -124,8 +126,6 @@ function MNIST() {
             </div>
         </div>
     );
-    
-    
 }
 
 export default MNIST;
