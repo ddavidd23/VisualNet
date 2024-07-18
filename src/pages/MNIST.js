@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as tf from "@tensorflow/tfjs";
-import * as tfdata from "@tensorflow/tfjs-data";
 import * as d3 from 'd3';
 import Select from "react-select";
 
@@ -12,9 +11,11 @@ import Header from '../comps/Header';
 import FunctionSelect from '../comps/FunctionSelect';
 
 import * as Constants from '../Constants';
+import { MnistData } from '../data/data';
 
 const MAX_IN_LAYER = 728;
 const MAX_LAYERS = 4;
+
 
 function MNIST() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
@@ -24,6 +25,7 @@ function MNIST() {
     const [modelFunctionIdx, setModelFunctionIdx] = useState(0);
     const [model, setModel] = useState();
     const [predictions, setPredictions] = useState();
+    const [data, setData] = useState();
 
     const layerCountDec = () => {
         setHiddenLayers(prev => (prev > 1 ? prev - 1 : 1));
@@ -46,36 +48,50 @@ function MNIST() {
         return model;
     };
 
-    const loadMNISTData = async () => {
-        const mnist = require('@tensorflow/tfjs-data').mnist;
-        const data = await mnist.load();
-        const { trainImages, trainLabels, testImages, testLabels } = data;
-        
-        const xTrain = trainImages.reshape([trainImages.shape[0], 784]);
-        const xTest = testImages.reshape([testImages.shape[0], 784]);
-
-        return { xTrain, yTrain: trainLabels, xTest, yTest: testLabels };
-    };
 
     const trainModel = async () => {
+        console.log("Current data state:", data);
+        if (!data) {
+            alert("Data not loaded yet");
+            return;
+        }
+    
         if (!model) {
             setModel(initializeModel());
         }
-
-        const { xTrain, yTrain, xTest, yTest } = await loadMNISTData();
-
-        await model.fit(xTrain, yTrain, {
+    
+        const trainData = data.getTrainData();
+        const testData = data.getTestData();
+    
+        await model.fit(trainData.xs, trainData.labels, {
             epochs: epochs,
-            validationData: [xTest, yTest],
+            validationData: [testData.xs, testData.labels],
             callbacks: {
                 onEpochEnd: async (epoch, logs) => {
                     console.log(`Epoch ${epoch + 1}: loss = ${logs.loss}, accuracy = ${logs.acc}`);
                 }
             }
         });
-
+    
         alert('Model training complete!');
     };
+
+    useEffect(() => {
+        async function loadData() {
+            try {
+                console.log("Starting to load data");
+                const loader = new MnistData();
+                console.log("loading data.");
+                await loader.load();
+                console.log("finished loading data.");
+                setData(loader);  // Set the entire MnistData instance as the data
+                console.log("finished setting data.");
+            } catch (error) {
+                console.error("Error loading MNIST data:", error);
+            }
+        }
+        loadData();
+    }, []);
 
     useEffect(() => {
         if (!model || hiddenLayers !== model.layers.length - 2 || 
