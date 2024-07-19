@@ -26,15 +26,66 @@ function MNIST() {
     const [showBias, setShowBias] = useState(true);
     const [modelFunctionIdx, setModelFunctionIdx] = useState(0);
     const [model, setModel] = useState();
+    const [modelTrained, setModelTrained] = useState(false);
     const [predictions, setPredictions] = useState();
     const [data, setData] = useState();
     const [batchSize, setBatchSize] = useState(128);
     const [canvasContext, setCanvasContext] = useState();
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [mousePosition, setMousePosition] = useState({});
 
     const canvasRef = useRef();  // replacement for document.getElementById("canvas").getContext("2d");
+
+    const clear = () => {
+        if (canvasContext) {
+            canvasContext.fillStyle = "black";
+            canvasContext.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        }
+    }
+
+    const startDrawing = (e) => {
+        console.log("started drawing");
+        setIsDrawing(true);
+        const rect = canvasRef.current.getBoundingClientRect();
+        setMousePosition({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        });
+    }
+
+    const stopDrawing = (e) => {
+        console.log("stopped drawing");
+        setIsDrawing(false);
+    }
+
+    const draw = (e) => {
+        if(!isDrawing) {
+            return;
+        }
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        console.log(`x: ${x}, y: ${y}`);
+        
+        const context = canvasContext;
+        context.strokeStyle = "white";
+        context.lineWidth = 4;
+        context.lineCap = "round";
+    
+        context.beginPath();
+        context.moveTo(mousePosition.x, mousePosition.y);
+        context.lineTo(x, y);
+        context.stroke();
+    
+        setMousePosition({ x, y });
+    }
+
     useEffect(() => {   // useEffect to make sure getContext is not called with every re-render (even though MDN says it's fine usually)
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");
+        context.fill = "black";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
         setCanvasContext(context);
     }, []);
     
@@ -60,7 +111,6 @@ function MNIST() {
         return model;
     };
 
-
     const trainModel = async () => {
         if (!data) {
             alert("Data not loaded yet");
@@ -68,6 +118,7 @@ function MNIST() {
         }
     
         if (!model) {
+            setModelTrained(false);
             setModel(initializeModel());
         }
     
@@ -88,9 +139,23 @@ function MNIST() {
             validationSplit: 0.2,
             callbacks: callbacks
         });
-    
+        setModelTrained(true);
         alert('Model training complete!');
     };
+
+    const predict = async() => {
+        if(!data) {
+            alert("Data not loaded yet");
+            return;
+        }
+        if(!model || !modelTrained) {
+            alert("Model has not been trained yet.");
+            return;
+        }
+
+
+
+    }
 
     useEffect(() => {
         async function loadData() {
@@ -124,11 +189,32 @@ function MNIST() {
                     <div className="flex-1 flex flex-col justify-center border border-gray-300 m-4">
                         <MNISTDiagram architecture={[728, ...neuronsInLayers, 10]} showBias={showBias} />
                     </div>
-                    <div>
+                    <div className="mb-8">
                         <canvas
                             ref={canvasRef}
+                            onMouseDown={startDrawing}
+                            onMouseMove={draw}
+                            onMouseUp={stopDrawing}
+                            onMouseEnter={stopDrawing}
+                            onMouseLeave={stopDrawing}
+                            width="280"
+                            height="280"
                             className="border border-gray-300 m-4"
                         />
+                        <div className="flex flex-row">
+                            <button
+                                onClick={clear}
+                                className="border border-gray-300 ml-4 p-2"
+                            >
+                                Clear
+                            </button>
+                            <button
+                                onClick={predict}
+                                className="border border-gray-300 ml-4 p-2"
+                            >
+                                Predict
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div className="m-4 w-1/3">
