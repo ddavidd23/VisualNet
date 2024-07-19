@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as tf from "@tensorflow/tfjs";
 import * as tfvis from "@tensorflow/tfjs-vis";
+import mnist from "mnist";
 import * as d3 from 'd3';
 import Select from "react-select";
 
@@ -28,6 +29,15 @@ function MNIST() {
     const [predictions, setPredictions] = useState();
     const [data, setData] = useState();
     const [batchSize, setBatchSize] = useState(128);
+    const [canvasContext, setCanvasContext] = useState();
+
+    const canvasRef = useRef();  // replacement for document.getElementById("canvas").getContext("2d");
+    useEffect(() => {   // useEffect to make sure getContext is not called with every re-render (even though MDN says it's fine usually)
+        const canvas = canvasRef.current;
+        const context = canvas.getContext("2d");
+        setCanvasContext(context);
+    }, []);
+    
 
     const layerCountDec = () => {
         setHiddenLayers(prev => (prev > 1 ? prev - 1 : 1));
@@ -109,10 +119,17 @@ function MNIST() {
     return (
         <div className="flex flex-col">
             <Header headerText={"MNIST Classification"} />
-            <div id="spacer" className="h-4"></div>
             <div className="flex flex-row justify-between">
-                <div className="flex-1 m-4 flex justify-center border border-gray-300 h-1/2">
-                    <MNISTDiagram architecture={[728, ...neuronsInLayers, 10]} showBias={showBias} />
+                <div className="flex flex-col">
+                    <div className="flex-1 flex flex-col justify-center border border-gray-300 m-4">
+                        <MNISTDiagram architecture={[728, ...neuronsInLayers, 10]} showBias={showBias} />
+                    </div>
+                    <div>
+                        <canvas
+                            ref={canvasRef}
+                            className="border border-gray-300 m-4"
+                        />
+                    </div>
                 </div>
                 <div className="m-4 w-1/3">
                     <div className="flex flex-col p-6 gap-y-3 bg-gray-100 border border-gray-300">
