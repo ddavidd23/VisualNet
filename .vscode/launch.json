@@ -7,11 +7,11 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "program": "${workspaceFolder}/src/pages/MLP.js"
+            "name": "Debug launcher",
+            "protocol": "inspector",
+            "program": "${workspaceFolder}/apps/launcher/src/main.ts",
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+            "sourceMaps": true
         }
     ]
 }

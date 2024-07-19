@@ -13,7 +13,7 @@ import FunctionSelect from '../comps/FunctionSelect';
 import * as Constants from '../Constants';
 import { MnistData } from '../data/data';
 
-const MAX_IN_LAYER = 728;
+const MAX_IN_LAYER = 256;
 const MAX_LAYERS = 4;
 
 
@@ -26,6 +26,7 @@ function MNIST() {
     const [model, setModel] = useState();
     const [predictions, setPredictions] = useState();
     const [data, setData] = useState();
+    const [batchSize, setBatchSize] = useState(128);
 
     const layerCountDec = () => {
         setHiddenLayers(prev => (prev > 1 ? prev - 1 : 1));
@@ -44,13 +45,12 @@ function MNIST() {
             model.add(tf.layers.dense({ units: neuronsInLayers[i], activation: 'relu' }));
         }
         model.add(tf.layers.dense({ units: 10, activation: 'softmax' }));
-        model.compile({ optimizer: 'adam', loss: 'sparseCategoricalCrossentropy', metrics: ['accuracy'] });
+        model.compile({ optimizer: 'adam', loss: 'categoricalCrossentropy', metrics: ['accuracy'] });
         return model;
     };
 
 
     const trainModel = async () => {
-        console.log("Current data state:", data);
         if (!data) {
             alert("Data not loaded yet");
             return;
@@ -60,15 +60,22 @@ function MNIST() {
             setModel(initializeModel());
         }
     
-        const trainData = data.getTrainData();
-        const testData = data.getTestData();
-    
-        await model.fit(trainData.xs, trainData.labels, {
+        const {images: trainDataXs, labels: trainDataLabels} = data.getTrainData();
+        console.log(trainDataXs);
+        console.log(trainDataLabels);
+        model.summary();
+
+        // // Create a dataset from the tensors
+        // const trainDataset = tf.data
+        //     .zip({xs: tf.data.array(trainDataXs), labels: tf.data.array(trainDataLabels)})
+        //     .batch(batchSize);
+
+        await model.fit(trainDataXs, trainDataLabels, {
             epochs: epochs,
-            validationData: [testData.xs, testData.labels],
+            // validationData: testDataset,
             callbacks: {
                 onEpochEnd: async (epoch, logs) => {
-                    console.log(`Epoch ${epoch + 1}: loss = ${logs.loss}, accuracy = ${logs.acc}`);
+                console.log(`Epoch ${epoch + 1}: loss = ${logs.loss}, accuracy = ${logs.acc}`);
                 }
             }
         });
@@ -98,7 +105,7 @@ function MNIST() {
             !neuronsInLayers.every((neurons, i) => model.layers[i + 1].units === neurons)) {
             setModel(initializeModel());
         }
-    }, [hiddenLayers, neuronsInLayers, modelFunctionIdx]);
+    }, [hiddenLayers, neuronsInLayers, modelFunctionIdx, batchSize]);
 
     return (
         <div className="flex flex-col">
@@ -130,6 +137,14 @@ function MNIST() {
                             min={1} 
                             max={2000} 
                             initial={epochs}
+                        />
+
+                        <Slider 
+                            labelText="Batch Size" 
+                            setState={setBatchSize} 
+                            min={1} 
+                            max={1024} 
+                            initial={128}
                         />
                         <button
                             onClick={trainModel}

@@ -4,9 +4,9 @@ export const IMAGE_H = 28;
 export const IMAGE_W = 28;
 const IMAGE_SIZE = IMAGE_H * IMAGE_W;
 const NUM_CLASSES = 10;
-const NUM_DATASET_ELEMENTS = 65000;
+const NUM_DATASET_ELEMENTS = 5000;
 
-const NUM_TRAIN_ELEMENTS = 55000;
+const NUM_TRAIN_ELEMENTS = 4500;
 const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
 
 const MNIST_IMAGES_SPRITE_PATH =
@@ -78,45 +78,20 @@ export class MnistData {
         this.datasetLabels.slice(NUM_CLASSES * NUM_TRAIN_ELEMENTS);
   }
 
-  /**
-   * Get all training data as a data tensor and a labels tensor.
-   *
-   * @returns
-   *   xs: The data tensor, of shape `[numTrainExamples, 28, 28, 1]`.
-   *   labels: The one-hot encoded labels tensor, of shape
-   *     `[numTrainExamples, 10]`.
-   */
   getTrainData() {
-    const xs = tf.tensor4d(
-        this.trainImages,
-        [this.trainImages.length / IMAGE_SIZE, IMAGE_H, IMAGE_W, 1]);
-    const labels = tf.tensor2d(
-        this.trainLabels, [this.trainLabels.length / NUM_CLASSES, NUM_CLASSES]);
-    return {xs, labels};
+    // Flatten the image data from [numTrainExamples, 28, 28, 1] to [numTrainExamples, 784]
+    const xs = tf.tensor2d(this.trainImages, [NUM_TRAIN_ELEMENTS, IMAGE_SIZE]);
+    const labels = tf.tensor2d(this.trainLabels, [NUM_TRAIN_ELEMENTS, NUM_CLASSES]);
+    return {images: xs, labels: labels};
   }
 
-  /**
-   * Get all test data as a data tensor and a labels tensor.
-   *
-   * @param {number} numExamples Optional number of examples to get. If not
-   *     provided,
-   *   all test examples will be returned.
-   * @returns
-   *   xs: The data tensor, of shape `[numTestExamples, 28, 28, 1]`.
-   *   labels: The one-hot encoded labels tensor, of shape
-   *     `[numTestExamples, 10]`.
-   */
-  getTestData(numExamples) {
-    let xs = tf.tensor4d(
-        this.testImages,
-        [this.testImages.length / IMAGE_SIZE, IMAGE_H, IMAGE_W, 1]);
-    let labels = tf.tensor2d(
-        this.testLabels, [this.testLabels.length / NUM_CLASSES, NUM_CLASSES]);
-
-    if (numExamples != null) {
-      xs = xs.slice([0, 0, 0, 0], [numExamples, IMAGE_H, IMAGE_W, 1]);
-      labels = labels.slice([0, 0], [numExamples, NUM_CLASSES]);
-    }
-    return {xs, labels};
+  getTestData(batchSize = 32) {
+    const xs = tf.tensor4d(this.testImages, [this.testImages.length / IMAGE_SIZE, 28, 28, 1]);
+    const labels = tf.tensor1d(this.testLabels);
+    
+    return tf.data.zip({
+      xs: tf.data.array(xs.arraySync()).batch(batchSize),
+      labels: tf.data.array(labels.arraySync()).batch(batchSize)
+    });
   }
 }
