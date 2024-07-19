@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as tf from "@tensorflow/tfjs";
+import * as tfvis from "@tensorflow/tfjs-vis";
 import * as d3 from 'd3';
 import Select from "react-select";
 
@@ -13,7 +14,7 @@ import FunctionSelect from '../comps/FunctionSelect';
 import * as Constants from '../Constants';
 import { MnistData } from '../data/data';
 
-const MAX_IN_LAYER = 256;
+const MAX_IN_LAYER = 32;
 const MAX_LAYERS = 4;
 
 
@@ -65,19 +66,17 @@ function MNIST() {
         console.log(trainDataLabels);
         model.summary();
 
-        // // Create a dataset from the tensors
-        // const trainDataset = tf.data
-        //     .zip({xs: tf.data.array(trainDataXs), labels: tf.data.array(trainDataLabels)})
-        //     .batch(batchSize);
+        const container = {
+            name: "Model Training", tab: "Model", styles: { height: "90%" }
+        };
+        const metrics = ["loss", "val_loss", "acc", "val_acc"];
+        const callbacks = tfvis.show.fitCallbacks(container, metrics);
 
         await model.fit(trainDataXs, trainDataLabels, {
+            batchSize: batchSize,
             epochs: epochs,
-            // validationData: testDataset,
-            callbacks: {
-                onEpochEnd: async (epoch, logs) => {
-                console.log(`Epoch ${epoch + 1}: loss = ${logs.loss}, accuracy = ${logs.acc}`);
-                }
-            }
+            validationSplit: 0.2,
+            callbacks: callbacks
         });
     
         alert('Model training complete!');

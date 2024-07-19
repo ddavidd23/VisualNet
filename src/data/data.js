@@ -84,14 +84,4 @@ export class MnistData {
     const labels = tf.tensor2d(this.trainLabels, [NUM_TRAIN_ELEMENTS, NUM_CLASSES]);
     return {images: xs, labels: labels};
   }
-
-  getTestData(batchSize = 32) {
-    const xs = tf.tensor4d(this.testImages, [this.testImages.length / IMAGE_SIZE, 28, 28, 1]);
-    const labels = tf.tensor1d(this.testLabels);
-    
-    return tf.data.zip({
-      xs: tf.data.array(xs.arraySync()).batch(batchSize),
-      labels: tf.data.array(labels.arraySync()).batch(batchSize)
-    });
-  }
 }
