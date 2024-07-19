@@ -17,6 +17,7 @@ import { MnistData } from '../data/data';
 
 const MAX_IN_LAYER = 32;
 const MAX_LAYERS = 4;
+const BATCH_SIZE_CHOICES = [8,16,32,64,128];
 
 
 function MNIST() {
@@ -123,9 +124,10 @@ function MNIST() {
         }
     
         const {images: trainDataXs, labels: trainDataLabels} = data.getTrainData();
+        // console.log(trainDataXs);
         console.log(trainDataXs);
-        console.log(trainDataLabels);
-        model.summary();
+        // console.log(trainDataLabels);
+        // model.summary();
 
         const container = {
             name: "Model Training", tab: "Model", styles: { height: "90%" }
@@ -152,9 +154,53 @@ function MNIST() {
             alert("Model has not been trained yet.");
             return;
         }
-
-
-
+    
+        console.log("retrieving image data");
+        const imageData = await canvasContext.getImageData(0, 0, 280, 280);
+        console.log("imageData retrieved");
+        
+        // Add null check here
+        if (!imageData) {
+            console.error("Failed to get image data");
+            return;
+        }
+    
+        const { data: pixelData } = imageData;
+    
+        // temp canvas for rescaling
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 28;
+        tempCanvas.height = 28;
+        const tempCtx = tempCanvas.getContext('2d');
+    
+        tempCtx.drawImage(canvasRef.current, 0, 0, 280, 280, 0, 0, 28, 28);
+    
+        const resizedImageData = tempCtx.getImageData(0, 0, 28, 28);
+        
+        if (!resizedImageData) {
+            console.error("Failed to get resized image data");
+            return;
+        }
+        console.log(resizedImageData);
+    
+        const { data: resizedData } = resizedImageData;
+    
+        const grayscaleData = [];
+        for (let i = 0; i < resizedData.length; i += 4) {
+            grayscaleData.push(1 - (resizedData[i] / 255));
+        }
+    
+        const tensor = tf.tensor2d(grayscaleData, [1, 784]);
+    
+        const prediction = model.predict(tensor);
+        
+        const predictedClass = prediction.argMax(1).dataSync()[0];
+        
+        console.log("Predicted digit:", predictedClass);
+    
+        // Clean up
+        tensor.dispose();
+        prediction.dispose();
     }
 
     useEffect(() => {
@@ -241,13 +287,25 @@ function MNIST() {
                             initial={epochs}
                         />
 
-                        <Slider 
+                        {/* <Slider 
                             labelText="Batch Size" 
                             setState={setBatchSize} 
                             min={1} 
                             max={1024} 
                             initial={128}
-                        />
+                        /> */}
+
+                        <p className="text-sm">Batch size</p>
+                        <div className="flex flex-row">
+                            {BATCH_SIZE_CHOICES.map((i) => {
+                                return <button key={i} className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(i)}>{i}</button>;
+                            })}
+                            {/* <button className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(8)}>8</button>
+                            <button className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(16)}>16</button> 
+                            <button className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(32)}>32</button> 
+                            <button className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(64)}>64</button> 
+                            <button className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(128)}>128</button>  */}
+                        </div>
                         <button
                             onClick={trainModel}
                             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
