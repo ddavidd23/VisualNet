@@ -2,22 +2,22 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as tf from "@tensorflow/tfjs";
 import * as tfvis from "@tensorflow/tfjs-vis";
 import mnist from "mnist";
-import * as d3 from 'd3';
-import Select from "react-select";
 
 import MNISTDiagram from '../comps/MNISTDiagram';
 import IncDecButton from '../comps/IncDecButton';
 import Slider from '../comps/Slider';
-import Graph from '../comps/Graph';
 import Header from '../comps/Header';
 import FunctionSelect from '../comps/FunctionSelect';
 
 import * as Constants from '../Constants';
-import { MnistData } from '../data/data';
 
 const MAX_IN_LAYER = 32;
 const MAX_LAYERS = 4;
 const BATCH_SIZE_CHOICES = [8,16,32,64,128];
+const NUM_TRAIN_ELEMENTS = 10;
+const NUM_TEST_ELEMENTS = 2000;
+const LABEL_LENGTH = 10;
+const FLATTENED_IMAGE_LENGTH = 784;
 
 
 function MNIST() {
@@ -39,7 +39,7 @@ function MNIST() {
 
     const clear = () => {
         if (canvasContext) {
-            canvasContext.fillStyle = "black";
+            canvasContext.fillStyle = "white";
             canvasContext.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         }
     }
@@ -69,7 +69,7 @@ function MNIST() {
         console.log(`x: ${x}, y: ${y}`);
         
         const context = canvasContext;
-        context.strokeStyle = "white";
+        context.strokeStyle = "black";
         context.lineWidth = 4;
         context.lineCap = "round";
     
@@ -84,7 +84,7 @@ function MNIST() {
     useEffect(() => {   // useEffect to make sure getContext is not called with every re-render (even though MDN says it's fine usually)
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");
-        context.fill = "black";
+        context.fill = "white";
         context.fillRect(0, 0, canvas.width, canvas.height);
 
         setCanvasContext(context);
@@ -103,7 +103,7 @@ function MNIST() {
 
     const initializeModel = () => {
         const model = tf.sequential();
-        model.add(tf.layers.dense({ units: neuronsInLayers[0], inputShape: [784], activation: 'relu' }));
+        model.add(tf.layers.dense({ units: neuronsInLayers[0], inputShape: [FLATTENED_IMAGE_LENGTH], activation: 'relu' }));
         for (let i = 1; i < hiddenLayers; i++) {
             model.add(tf.layers.dense({ units: neuronsInLayers[i], activation: 'relu' }));
         }
@@ -123,11 +123,31 @@ function MNIST() {
             setModel(initializeModel());
         }
     
-        const {images: trainDataXs, labels: trainDataLabels} = data.getTrainData();
+        // const {images: trainDataXs, labels: trainDataLabels} = data.getTrainData();
         // console.log(trainDataXs);
-        console.log(trainDataXs);
-        // console.log(trainDataLabels);
-        // model.summary();
+        const trainData = data.training;
+        const testData = data.test;
+        console.log(`length: ${trainData.length}`);
+
+        const trainDataXs = trainData.reduce((acc, item) => {
+            return acc.concat(item.input);
+        }, []);
+        const trainDataXsTensor = tf.tensor2d(trainDataXs, [NUM_TRAIN_ELEMENTS, FLATTENED_IMAGE_LENGTH]);
+        const trainDataLabels = trainData.reduce((acc, item) => {
+            return acc.concat(item.output);
+        }, []);
+        const trainDataLabelsTensor = tf.tensor2d(trainDataLabels, [NUM_TRAIN_ELEMENTS, LABEL_LENGTH]);
+        console.log(trainDataLabelsTensor);
+
+        const testDataXs = testData.reduce((acc, item) => {
+            return acc.concat(item.input);
+        }, []);
+        const testDataXsTensor = tf.tensor2d(testDataXs, [NUM_TEST_ELEMENTS, FLATTENED_IMAGE_LENGTH]);
+        const testDataLabels = testData.reduce((acc, item) => {
+            return acc.concat(item.output);
+        }, []);
+        const testDataLabelsTensor = tf.tensor2d(testDataLabels, [NUM_TEST_ELEMENTS, LABEL_LENGTH]);
+        console.log(testDataLabelsTensor);
 
         const container = {
             name: "Model Training", tab: "Model", styles: { height: "90%" }
@@ -135,10 +155,10 @@ function MNIST() {
         const metrics = ["loss", "val_loss", "acc", "val_acc"];
         const callbacks = tfvis.show.fitCallbacks(container, metrics);
 
-        await model.fit(trainDataXs, trainDataLabels, {
+        await model.fit(trainDataXsTensor, trainDataLabelsTensor, {
+            validationData: [testDataXsTensor, testDataLabelsTensor],
             batchSize: batchSize,
             epochs: epochs,
-            validationSplit: 0.2,
             callbacks: callbacks
         });
         setModelTrained(true);
@@ -190,7 +210,7 @@ function MNIST() {
             grayscaleData.push(1 - (resizedData[i] / 255));
         }
     
-        const tensor = tf.tensor2d(grayscaleData, [1, 784]);
+        const tensor = tf.tensor2d(grayscaleData, [1, FLATTENED_IMAGE_LENGTH]);
     
         const prediction = model.predict(tensor);
         
@@ -204,20 +224,10 @@ function MNIST() {
     }
 
     useEffect(() => {
-        async function loadData() {
-            try {
-                console.log("Starting to load data");
-                const loader = new MnistData();
-                console.log("loading data.");
-                await loader.load();
-                console.log("finished loading data.");
-                setData(loader);  // Set the entire MnistData instance as the data
-                console.log("finished setting data.");
-            } catch (error) {
-                console.error("Error loading MNIST data:", error);
-            }
-        }
-        loadData();
+        const set = mnist.set(NUM_TRAIN_ELEMENTS, NUM_TEST_ELEMENTS);
+        console.log(`0: ${mnist[0].get(100)}`)
+        console.log("Finished loading data.")
+        setData(set);
     }, []);
 
     useEffect(() => {
