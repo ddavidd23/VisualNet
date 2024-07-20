@@ -10,12 +10,13 @@ import Header from '../comps/Header';
 import FunctionSelect from '../comps/FunctionSelect';
 
 import * as Constants from '../Constants';
+import { gray } from 'd3';
 
 const MAX_IN_LAYER = 32;
 const MAX_LAYERS = 4;
 const BATCH_SIZE_CHOICES = [8,16,32,64,128];
-const NUM_TRAIN_ELEMENTS = 10;
-const NUM_TEST_ELEMENTS = 2000;
+const NUM_TRAIN_ELEMENTS = 4000;
+const NUM_TEST_ELEMENTS = 500;
 const LABEL_LENGTH = 10;
 const FLATTENED_IMAGE_LENGTH = 784;
 
@@ -34,8 +35,10 @@ function MNIST() {
     const [canvasContext, setCanvasContext] = useState();
     const [isDrawing, setIsDrawing] = useState(false);
     const [mousePosition, setMousePosition] = useState({});
+    const [epochInfo, setEpochInfo] = useState([]);
 
     const canvasRef = useRef();  // replacement for document.getElementById("canvas").getContext("2d");
+    const logRef = useRef();
 
     const clear = () => {
         if (canvasContext) {
@@ -84,12 +87,18 @@ function MNIST() {
     useEffect(() => {   // useEffect to make sure getContext is not called with every re-render (even though MDN says it's fine usually)
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");
-        context.fill = "white";
+        context.fillStyle = "white";
         context.fillRect(0, 0, canvas.width, canvas.height);
 
         setCanvasContext(context);
     }, []);
     
+    useEffect(() => {
+        if (logRef.current) {
+          logRef.current.scrollTop = logRef.current.scrollHeight;
+        }
+      }, [epochInfo]); // Dependency on epochInfo to trigger scroll update on change
+      
 
     const layerCountDec = () => {
         setHiddenLayers(prev => (prev > 1 ? prev - 1 : 1));
@@ -102,12 +111,13 @@ function MNIST() {
     };
 
     const initializeModel = () => {
+        
         const model = tf.sequential();
         model.add(tf.layers.dense({ units: neuronsInLayers[0], inputShape: [FLATTENED_IMAGE_LENGTH], activation: 'relu' }));
         for (let i = 1; i < hiddenLayers; i++) {
             model.add(tf.layers.dense({ units: neuronsInLayers[i], activation: 'relu' }));
         }
-        model.add(tf.layers.dense({ units: 10, activation: 'softmax' }));
+        model.add(tf.layers.dense({ units: LABEL_LENGTH, activation: 'softmax' }));
         model.compile({ optimizer: 'adam', loss: 'categoricalCrossentropy', metrics: ['accuracy'] });
         return model;
     };
@@ -117,12 +127,12 @@ function MNIST() {
             alert("Data not loaded yet");
             return;
         }
-    
         if (!model) {
             setModelTrained(false);
             setModel(initializeModel());
         }
-    
+        
+        setEpochInfo([]);
         // const {images: trainDataXs, labels: trainDataLabels} = data.getTrainData();
         // console.log(trainDataXs);
         const trainData = data.training;
@@ -154,73 +164,34 @@ function MNIST() {
         };
         const metrics = ["loss", "val_loss", "acc", "val_acc"];
         const callbacks = tfvis.show.fitCallbacks(container, metrics);
-
         await model.fit(trainDataXsTensor, trainDataLabelsTensor, {
             validationData: [testDataXsTensor, testDataLabelsTensor],
             batchSize: batchSize,
             epochs: epochs,
-            callbacks: callbacks
+            callbacks: {
+                onEpochEnd: (epoch, logs) => {
+                    setEpochInfo(oldEpochInfo => [...oldEpochInfo, { epoch: epoch + 1, loss: logs.loss, accuracy: logs.acc }]);
+                }
+            }
         });
+        setModel(model);
         setModelTrained(true);
         alert('Model training complete!');
     };
 
     const predict = async() => {
-        if(!data) {
-            alert("Data not loaded yet");
-            return;
-        }
-        if(!model || !modelTrained) {
-            alert("Model has not been trained yet.");
-            return;
-        }
-    
-        console.log("retrieving image data");
-        const imageData = await canvasContext.getImageData(0, 0, 280, 280);
-        console.log("imageData retrieved");
+        mnist.draw(data.training[7].input, canvasContext);
+
+        const tensor = tf.browser.fromPixels(canvasRef.current)  // Use canvasRef.current instead of canvasContext
+            .resizeNearestNeighbor([28, 28])  // Resize to match MNIST input size
+            .mean(2)                          // Convert to grayscale by averaging over color channels
+            .expandDims()                     // Add a batch dimension
+            .toFloat()                        // Convert to float
+            .div(255.0)                       // Normalize to [0, 1]
+            .reshape([1, 784]);               // Flatten the image to a vector        console.log(tensor.shape); 
         
-        // Add null check here
-        if (!imageData) {
-            console.error("Failed to get image data");
-            return;
-        }
-    
-        const { data: pixelData } = imageData;
-    
-        // temp canvas for rescaling
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = 28;
-        tempCanvas.height = 28;
-        const tempCtx = tempCanvas.getContext('2d');
-    
-        tempCtx.drawImage(canvasRef.current, 0, 0, 280, 280, 0, 0, 28, 28);
-    
-        const resizedImageData = tempCtx.getImageData(0, 0, 28, 28);
-        
-        if (!resizedImageData) {
-            console.error("Failed to get resized image data");
-            return;
-        }
-        console.log(resizedImageData);
-    
-        const { data: resizedData } = resizedImageData;
-    
-        const grayscaleData = [];
-        for (let i = 0; i < resizedData.length; i += 4) {
-            grayscaleData.push(1 - (resizedData[i] / 255));
-        }
-    
-        const tensor = tf.tensor2d(grayscaleData, [1, FLATTENED_IMAGE_LENGTH]);
-    
-        const prediction = model.predict(tensor);
-        
-        const predictedClass = prediction.argMax(1).dataSync()[0];
-        
-        console.log("Predicted digit:", predictedClass);
-    
-        // Clean up
-        tensor.dispose();
-        prediction.dispose();
+        const predictions = await model.predict(tensor).data();
+        console.log(`predictions: ${predictions}`);
     }
 
     useEffect(() => {
@@ -253,8 +224,8 @@ function MNIST() {
                             onMouseUp={stopDrawing}
                             onMouseEnter={stopDrawing}
                             onMouseLeave={stopDrawing}
-                            width="280"
-                            height="280"
+                            width="28"
+                            height="28"
                             className="border border-gray-300 m-4"
                         />
                         <div className="flex flex-row">
@@ -322,6 +293,11 @@ function MNIST() {
                         >
                             Train Model
                         </button>
+                    </div>
+                    <div ref={logRef} className="overflow-auto max-h-40 font-mono mt-4">
+                        {epochInfo.map(info => (
+                            <p key={info.epoch}>Epoch {info.epoch}: Loss: {info.loss.toFixed(4)}, Accuracy: {info.accuracy.toFixed(4)}</p>
+                        ))}
                     </div>
                 </div>
             </div>
