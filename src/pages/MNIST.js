@@ -14,17 +14,20 @@ import { gray } from 'd3';
 
 const MAX_IN_LAYER = 32;
 const MAX_LAYERS = 4;
-const BATCH_SIZE_CHOICES = [8,16,32,64,128];
+const BATCH_SIZE_CHOICES = [16,32,64,128];
 const NUM_TRAIN_ELEMENTS = 4000;
 const NUM_TEST_ELEMENTS = 500;
 const LABEL_LENGTH = 10;
 const FLATTENED_IMAGE_LENGTH = 784;
+const CANVAS_WIDTH = 350;
+const CANVAS_HEIGHT = CANVAS_WIDTH;
+const MAX_EPOCHS = 100;
 
 
 function MNIST() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
     const [neuronsInLayers, setNeuronsInLayers] = useState([1]);
-    const [epochs, setEpochs] = useState(500);
+    const [epochs, setEpochs] = useState(10);
     const [showBias, setShowBias] = useState(true);
     const [modelFunctionIdx, setModelFunctionIdx] = useState(0);
     const [model, setModel] = useState();
@@ -48,7 +51,6 @@ function MNIST() {
     }
 
     const startDrawing = (e) => {
-        console.log("started drawing");
         setIsDrawing(true);
         const rect = canvasRef.current.getBoundingClientRect();
         setMousePosition({
@@ -58,7 +60,6 @@ function MNIST() {
     }
 
     const stopDrawing = (e) => {
-        console.log("stopped drawing");
         setIsDrawing(false);
     }
 
@@ -73,7 +74,7 @@ function MNIST() {
         
         const context = canvasContext;
         context.strokeStyle = "black";
-        context.lineWidth = 4;
+        context.lineWidth = 16;
         context.lineCap = "round";
     
         context.beginPath();
@@ -137,7 +138,6 @@ function MNIST() {
         // console.log(trainDataXs);
         const trainData = data.training;
         const testData = data.test;
-        console.log(`length: ${trainData.length}`);
 
         const trainDataXs = trainData.reduce((acc, item) => {
             return acc.concat(item.input);
@@ -163,14 +163,15 @@ function MNIST() {
             name: "Model Training", tab: "Model", styles: { height: "90%" }
         };
         const metrics = ["loss", "val_loss", "acc", "val_acc"];
-        const callbacks = tfvis.show.fitCallbacks(container, metrics);
+        // const callbacks = tfvis.show.fitCallbacks(container, metrics);
         await model.fit(trainDataXsTensor, trainDataLabelsTensor, {
             validationData: [testDataXsTensor, testDataLabelsTensor],
             batchSize: batchSize,
             epochs: epochs,
             callbacks: {
                 onEpochEnd: (epoch, logs) => {
-                    setEpochInfo(oldEpochInfo => [...oldEpochInfo, { epoch: epoch + 1, loss: logs.loss, accuracy: logs.acc }]);
+                    console.log(logs);
+                    setEpochInfo(oldEpochInfo => [...oldEpochInfo, { epoch: epoch + 1, loss: logs.loss, acc: logs.acc, val_acc: logs.val_acc }]);
                 }
             }
         });
@@ -180,15 +181,13 @@ function MNIST() {
     };
 
     const predict = async() => {
-        mnist.draw(data.training[7].input, canvasContext);
-
         const tensor = tf.browser.fromPixels(canvasRef.current)  // Use canvasRef.current instead of canvasContext
             .resizeNearestNeighbor([28, 28])  // Resize to match MNIST input size
             .mean(2)                          // Convert to grayscale by averaging over color channels
             .expandDims()                     // Add a batch dimension
             .toFloat()                        // Convert to float
             .div(255.0)                       // Normalize to [0, 1]
-            .reshape([1, 784]);               // Flatten the image to a vector        console.log(tensor.shape); 
+            .reshape([1, FLATTENED_IMAGE_LENGTH]);               // Flatten the image to a vector        console.log(tensor.shape); 
         
         const predictions = await model.predict(tensor).data();
         console.log(`predictions: ${predictions}`);
@@ -196,7 +195,6 @@ function MNIST() {
 
     useEffect(() => {
         const set = mnist.set(NUM_TRAIN_ELEMENTS, NUM_TEST_ELEMENTS);
-        console.log(`0: ${mnist[0].get(100)}`)
         console.log("Finished loading data.")
         setData(set);
     }, []);
@@ -211,10 +209,10 @@ function MNIST() {
     return (
         <div className="flex flex-col">
             <Header headerText={"MNIST Classification"} />
-            <div className="flex flex-row justify-between">
-                <div className="flex flex-col">
-                    <div className="flex-1 flex flex-col justify-center border border-gray-300 m-4">
-                        <MNISTDiagram architecture={[728, ...neuronsInLayers, 10]} showBias={showBias} />
+            <div className="flex flex-row w-full">
+                <div className="flex flex-col min-w-0">
+                    <div className="relative flex-1 flex flex-col border border-gray-300 m-4">
+                        <MNISTDiagram architecture={[FLATTENED_IMAGE_LENGTH, ...neuronsInLayers, LABEL_LENGTH]} showBias={showBias} />
                     </div>
                     <div className="mb-8">
                         <canvas
@@ -224,8 +222,8 @@ function MNIST() {
                             onMouseUp={stopDrawing}
                             onMouseEnter={stopDrawing}
                             onMouseLeave={stopDrawing}
-                            width="28"
-                            height="28"
+                            width={CANVAS_WIDTH}
+                            height={CANVAS_HEIGHT}
                             className="border border-gray-300 m-4"
                         />
                         <div className="flex flex-row">
@@ -244,7 +242,7 @@ function MNIST() {
                         </div>
                     </div>
                 </div>
-                <div className="m-4 w-1/3">
+                <div className="m-4 shrink-0 w-1/3">
                     <div className="flex flex-col p-6 gap-y-3 bg-gray-100 border border-gray-300">
                         <h1 className="text-xl font-bold">Settings</h1>
                         <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
@@ -264,28 +262,15 @@ function MNIST() {
                             labelText="Epochs" 
                             setState={setEpochs} 
                             min={1} 
-                            max={2000} 
+                            max={MAX_EPOCHS} 
                             initial={epochs}
                         />
-
-                        {/* <Slider 
-                            labelText="Batch Size" 
-                            setState={setBatchSize} 
-                            min={1} 
-                            max={1024} 
-                            initial={128}
-                        /> */}
 
                         <p className="text-sm">Batch size</p>
                         <div className="flex flex-row">
                             {BATCH_SIZE_CHOICES.map((i) => {
                                 return <button key={i} className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(i)}>{i}</button>;
                             })}
-                            {/* <button className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(8)}>8</button>
-                            <button className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(16)}>16</button> 
-                            <button className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(32)}>32</button> 
-                            <button className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(64)}>64</button> 
-                            <button className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(128)}>128</button>  */}
                         </div>
                         <button
                             onClick={trainModel}
@@ -294,9 +279,9 @@ function MNIST() {
                             Train Model
                         </button>
                     </div>
-                    <div ref={logRef} className="overflow-auto max-h-40 font-mono mt-4">
+                    <div ref={logRef} className="overflow-auto max-h-50 font-mono mt-4">
                         {epochInfo.map(info => (
-                            <p key={info.epoch}>Epoch {info.epoch}: Loss: {info.loss.toFixed(4)}, Accuracy: {info.accuracy.toFixed(4)}</p>
+                            <p key={info.epoch}>Epoch {info.epoch}: Loss: {info.loss.toFixed(3)}, Acc: {info.acc.toFixed(3)}, Val acc: {info.val_acc.toFixed(3)}</p>
                         ))}
                     </div>
                 </div>

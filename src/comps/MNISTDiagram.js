@@ -44,31 +44,31 @@ const MNISTDiagram = ({ architecture, showBias }) => {
             positionNodes(node, link, x, y, config);
 
             // Center the diagram
-            const scale = Math.min(width / diagramWidth, height / diagramHeight) * 0.5; // 0.5 to add some padding
-            const translateX = (width - diagramWidth * scale) / 2;
-            const translateY = (height - diagramHeight * scale) - height * 0.1;
+            const scale = Math.min(width / diagramWidth, height / diagramHeight); // 0.5 to add some padding
+            const translateX = (width - diagramWidth * scale);
+            const translateY = (height - diagramHeight * scale);
             g.attr("transform", `translate(${width/2},${translateY}) scale(${scale})`);
         }
 
-        const zoom = d3.zoom()
-            .scaleExtent([0.5, 4])  // Set min and max zoom levels
-            .on("zoom", (event) => {
-                const transform = event.transform;
-                const translateY = transform.y;
-                const scale = transform.k;
-                g.attr("transform", `translate(${width / 2}, ${translateY}) scale(${scale})`);
-            });
+        // const zoom = d3.zoom()
+        //     .scaleExtent([0.5, 4])  // Set min and max zoom levels
+        //     .on("zoom", (event) => {
+        //         const transform = event.transform;
+        //         const translateY = transform.y;
+        //         const scale = transform.k;
+        //         g.attr("transform", `translate(${width / 2}, ${translateY}) scale(${scale})`);
+        //     });
 
-        svg.call(zoom);
+        // svg.call(zoom);
 
         function resize() {
             const { width, height, viewBox } = setupDimensions();
             svg.attr("width", width)
                .attr("height", height)
-               .attr("viewBox", viewBox);
+            //    .attr("viewBox", viewBox);
 
             redistribute();
-            svg.call(zoom.transform, d3.zoomIdentity); // Reset zoom after redistribution
+            // svg.call(zoom.transform, d3.zoomIdentity); // Reset zoom after redistribution
         }
 
         d3.select(window).on("resize", resize);
@@ -78,7 +78,9 @@ const MNISTDiagram = ({ architecture, showBias }) => {
         redistribute();
     }, [architecture, showBias, config]);
 
-    return <svg ref={svgRef} preserveAspectRatio="xMidYMid meet" />;
+    return (
+        <svg className="w-full h-full" ref={svgRef} viewBox="0 -300 950 800"/>
+    );
 };
 
 const setupDimensions = () => {
