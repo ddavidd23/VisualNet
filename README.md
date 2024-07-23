@@ -11,6 +11,7 @@ This web app provides several visualizations for training and prediction with mu
 * Models downloadable in `SavedModel` format
 * Prediction and evaluation capabilities
 * On-screen console with training metrics
+* (In development) CNN training and visualization
 
 ## Available Scripts
 
