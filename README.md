@@ -1,6 +1,6 @@
-# Getting Started with Create React App
+# VisualNet
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This web app provides several visualizations for training and prediction with multi-layer perceptrons (MLPs) on both a generic function approximation application and the classic MNIST dataset.
 
 ## Available Scripts
 
