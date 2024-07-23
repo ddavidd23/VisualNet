@@ -1,6 +1,12 @@
-# Getting Started with Create React App
+# VisualNet
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This web app provides several visualizations for training and prediction with multi-layer perceptrons (MLPs) on both a generic function approximation application and the classic MNIST dataset.
+<p align="center">
+  <img width="482" alt="Screenshot 2024-07-22 at 10 01 09 PM" src="https://github.com/user-attachments/assets/91938cc5-3b06-4eb5-a1e2-38d9b05d2404">
+  <img width="395" alt="Screenshot 2024-07-22 at 10 02 44 PM" src="https://github.com/user-attachments/assets/7d235668-687c-4dab-acc6-94fa97ec7a99">
+</p>
+
+VisualNet is powered by <a href="https://www.tensorflow.org/js">Tensorflow.js</a>, React.js, and Tailwind.
 
 ## Available Scripts
 
