@@ -4,16 +4,16 @@ import MNISTThumbnail from '../img/mnist_thumbnail.png';
 
 const PAGES = [
     {
-        title: "Simple MLP",
-        description: "Try your hand at building the best neural network to approximate a function!",
-        link: "/mlp",
-        imgLink: simpleMLPThumbnail
-    },
-    {
         title: "MNIST Classification",
         description: "Build a neural network to classify over the classic MNIST dataset",
         link: "/mnist",
         imgLink: MNISTThumbnail
+    },
+    {
+        title: "Simple MLP",
+        description: "Try your hand at building the best neural network to approximate a function!",
+        link: "/mlp",
+        imgLink: simpleMLPThumbnail
     }
 ]
 

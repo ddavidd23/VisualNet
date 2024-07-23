@@ -11,18 +11,18 @@ import FunctionSelect from '../comps/FunctionSelect';
 
 import * as Constants from '../Constants';
 import { gray } from 'd3';
+import Output from '../comps/Output';
 
 const MAX_IN_LAYER = 32;
 const MAX_LAYERS = 4;
 const BATCH_SIZE_CHOICES = [16,32,64,128];
-const NUM_TRAIN_ELEMENTS = 4000;
+const NUM_TRAIN_ELEMENTS = 5000;
 const NUM_TEST_ELEMENTS = 500;
 const LABEL_LENGTH = 10;
 const FLATTENED_IMAGE_LENGTH = 784;
 const CANVAS_WIDTH = 350;
 const CANVAS_HEIGHT = CANVAS_WIDTH;
 const MAX_EPOCHS = 100;
-
 
 function MNIST() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
@@ -39,6 +39,7 @@ function MNIST() {
     const [isDrawing, setIsDrawing] = useState(false);
     const [mousePosition, setMousePosition] = useState({});
     const [epochInfo, setEpochInfo] = useState([]);
+    const [probs, setProbs] = useState(Array(10).fill(0.1));
 
     const canvasRef = useRef();  // replacement for document.getElementById("canvas").getContext("2d");
     const logRef = useRef();
@@ -112,7 +113,6 @@ function MNIST() {
     };
 
     const initializeModel = () => {
-        
         const model = tf.sequential();
         model.add(tf.layers.dense({ units: neuronsInLayers[0], inputShape: [FLATTENED_IMAGE_LENGTH], activation: 'relu' }));
         for (let i = 1; i < hiddenLayers; i++) {
@@ -132,10 +132,9 @@ function MNIST() {
             setModelTrained(false);
             setModel(initializeModel());
         }
-        
+
         setEpochInfo([]);
-        // const {images: trainDataXs, labels: trainDataLabels} = data.getTrainData();
-        // console.log(trainDataXs);
+
         const trainData = data.training;
         const testData = data.test;
 
@@ -159,11 +158,6 @@ function MNIST() {
         const testDataLabelsTensor = tf.tensor2d(testDataLabels, [NUM_TEST_ELEMENTS, LABEL_LENGTH]);
         console.log(testDataLabelsTensor);
 
-        const container = {
-            name: "Model Training", tab: "Model", styles: { height: "90%" }
-        };
-        const metrics = ["loss", "val_loss", "acc", "val_acc"];
-        // const callbacks = tfvis.show.fitCallbacks(container, metrics);
         await model.fit(trainDataXsTensor, trainDataLabelsTensor, {
             validationData: [testDataXsTensor, testDataLabelsTensor],
             batchSize: batchSize,
@@ -181,15 +175,18 @@ function MNIST() {
     };
 
     const predict = async() => {
-        const tensor = tf.browser.fromPixels(canvasRef.current)  // Use canvasRef.current instead of canvasContext
-            .resizeNearestNeighbor([28, 28])  // Resize to match MNIST input size
-            .mean(2)                          // Convert to grayscale by averaging over color channels
-            .expandDims()                     // Add a batch dimension
-            .toFloat()                        // Convert to float
-            .div(255.0)                       // Normalize to [0, 1]
-            .reshape([1, FLATTENED_IMAGE_LENGTH]);               // Flatten the image to a vector        console.log(tensor.shape); 
-        
+        const tensor = tf.sub(
+            tf.scalar(1),
+            tf.browser.fromPixels(canvasRef.current)  // Use canvasRef.current instead of canvasContext
+                .resizeNearestNeighbor([28, 28])  // Resize to match MNIST input size
+                .mean(2)                          // Convert to grayscale by averaging over color channels
+                .expandDims()                     // Add a batch dimension
+                .toFloat()                        // Convert to float
+                .div(255.0)                       // Normalize to [0, 1]
+                .reshape([1, FLATTENED_IMAGE_LENGTH])
+        );
         const predictions = await model.predict(tensor).data();
+        setProbs(predictions);
         console.log(`predictions: ${predictions}`);
     }
 
@@ -207,43 +204,47 @@ function MNIST() {
     }, [hiddenLayers, neuronsInLayers, modelFunctionIdx, batchSize]);
 
     return (
-        <div className="flex flex-col">
+        <div className="flex flex-col bg-gray-50">
             <Header headerText={"MNIST Classification"} />
             <div className="flex flex-row w-full">
-                <div className="flex flex-col min-w-0">
-                    <div className="relative flex-1 flex flex-col border border-gray-300 m-4">
+                {/* <div className="flex flex-col min-w-0"> */}
+                <div className="flex flex-row w-full max-w-6xl p-4 space-x-4">
+                    <div className="relative flex-1 flex flex-col border border-gray-300 m-4 rounded-lg bg-white">
                         <MNISTDiagram architecture={[FLATTENED_IMAGE_LENGTH, ...neuronsInLayers, LABEL_LENGTH]} showBias={showBias} />
                     </div>
-                    <div className="mb-8">
-                        <canvas
-                            ref={canvasRef}
-                            onMouseDown={startDrawing}
-                            onMouseMove={draw}
-                            onMouseUp={stopDrawing}
-                            onMouseEnter={stopDrawing}
-                            onMouseLeave={stopDrawing}
-                            width={CANVAS_WIDTH}
-                            height={CANVAS_HEIGHT}
-                            className="border border-gray-300 m-4"
-                        />
-                        <div className="flex flex-row">
-                            <button
-                                onClick={clear}
-                                className="border border-gray-300 ml-4 p-2"
-                            >
-                                Clear
-                            </button>
-                            <button
-                                onClick={predict}
-                                className="border border-gray-300 ml-4 p-2"
-                            >
-                                Predict
-                            </button>
+                    <div className="flex flex-col justify-center bg-white rounded-lg mt-4 border border-gray-300">
+                        <div className="mb-8">
+                            <canvas
+                                ref={canvasRef}
+                                onMouseDown={startDrawing}
+                                onMouseMove={draw}
+                                onMouseUp={stopDrawing}
+                                onMouseEnter={stopDrawing}
+                                onMouseLeave={stopDrawing}
+                                width={CANVAS_WIDTH}
+                                height={CANVAS_HEIGHT}
+                                className="border border-gray-300 m-4"
+                            />
+                            <div className="flex flex-row">
+                                <button
+                                    onClick={clear}
+                                    className="border border-gray-300 ml-4 p-2"
+                                >
+                                    Clear
+                                </button>
+                                <button
+                                    onClick={predict}
+                                    className="border border-gray-300 ml-4 p-2"
+                                >
+                                    Predict
+                                </button>
+                            </div>
                         </div>
+                        <Output probs={probs} />
                     </div>
                 </div>
-                <div className="m-4 shrink-0 w-1/3">
-                    <div className="flex flex-col p-6 gap-y-3 bg-gray-100 border border-gray-300">
+                <div className="shrink-0 w-1/3 mt-4 mr-4">
+                    <div className="m-4 flex flex-col p-6 gap-y-3 bg-white border border-gray-300 rounded-lg">
                         <h1 className="text-xl font-bold">Settings</h1>
                         <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
                         {Array.from({ length: hiddenLayers }, (_, idx) => (
@@ -269,19 +270,26 @@ function MNIST() {
                         <p className="text-sm">Batch size</p>
                         <div className="flex flex-row">
                             {BATCH_SIZE_CHOICES.map((i) => {
-                                return <button key={i} className="flex-1 border border-gray-400 py-1 px-2" onClick={() => setBatchSize(i)}>{i}</button>;
+                                return <button key={i} className="flex-1 border border-gray-400 py-1 px-2 active:bg-blue-400 focus:bg-blue-400" onClick={() => setBatchSize(i)}>{i}</button>;
                             })}
                         </div>
                         <button
-                            onClick={trainModel}
+                            onClick={async () => {
+                                setEpochInfo([{state: "Initializing training (may take up to 20s)..."}]);
+                                await new Promise(resolve => setTimeout(resolve, 0)); // Ensures state update before continuing
+                                trainModel();
+                            }}
                             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                         >
                             Train Model
                         </button>
                     </div>
-                    <div ref={logRef} className="overflow-auto max-h-50 font-mono mt-4">
+                    <div ref={logRef} className="overflow-auto h-60 font-mono border border-gray-400 rounded-lg m-4">
+                        <p className="text-sm font-mono font-bold p-2">Console</p>
                         {epochInfo.map(info => (
-                            <p key={info.epoch}>Epoch {info.epoch}: Loss: {info.loss.toFixed(3)}, Acc: {info.acc.toFixed(3)}, Val acc: {info.val_acc.toFixed(3)}</p>
+                            "epoch" in info ?
+                                <p key={info.epoch}>Epoch {info.epoch}: Loss: {info.loss}, Acc: {info.acc}, Val acc: {info.val_acc}</p> :
+                                <p key="0">{info.state}</p>
                         ))}
                     </div>
                 </div>
