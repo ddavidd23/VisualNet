@@ -1,6 +1,7 @@
 # VisualNet
 
 This web app provides several visualizations for training and prediction with multi-layer perceptrons (MLPs) on both a generic function approximation application and the classic MNIST dataset.
+<img width="482" alt="Screenshot 2024-07-22 at 10 01 09 PM" src="https://github.com/user-attachments/assets/91938cc5-3b06-4eb5-a1e2-38d9b05d2404">
 
 ## Available Scripts
 
