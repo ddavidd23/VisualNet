@@ -6,6 +6,8 @@ This web app provides several visualizations for training and prediction with mu
   <img width="395" alt="Screenshot 2024-07-22 at 10 02 44 PM" src="https://github.com/user-attachments/assets/7d235668-687c-4dab-acc6-94fa97ec7a99">
 </p>
 
+VisualNet is powered by <a href="https://www.tensorflow.org/js">Tensorflow.js</a>, React.js, and Tailwind.
+
 ## Available Scripts
 
 In the project directory, you can run:
