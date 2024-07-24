@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useMemo } from "react";
 import * as d3 from "d3";
 
+const INPUT_WIDTH_FACTOR = 16;
+const LINKS_FROM_INPUT_LAYER = 5;
+
 const MLPDiagram = ({ architecture, showBias }) => {
     const svgRef = useRef(null);
 
@@ -61,7 +64,7 @@ const MLPDiagram = ({ architecture, showBias }) => {
         redistribute();
     }, [architecture, showBias, config]);
 
-    return <svg ref={svgRef} />;
+    return <svg className="w-full h-full" ref={svgRef} viewBox="50 60 400 400" />;
 };
 
 // Helper functions
@@ -164,9 +167,12 @@ const calculateNodePositions = (architecture, width, height, { nodeDiameter, bet
     const largestLayerWidth = Math.max(...layerWidths);
     const layerOffsets = layerWidths.map(layerWidth => (largestLayerWidth - layerWidth) / 2);
 
-    const x = (layer, nodeIndex) => layerOffsets[layer] + nodeIndex * (nodeDiameter + betweenNodesInLayer);
-    const y = layer => layer * (betweenLayers + nodeDiameter);
-
+    // const x = (layer, nodeIndex) => layerOffsets[layer] + nodeIndex * (nodeDiameter + betweenNodesInLayer);
+    const x = (layer, nodeIndex) => {
+        return layerOffsets[layer] + nodeIndex * (nodeDiameter + betweenNodesInLayer) - largestLayerWidth / 2;
+    };
+    // const y = layer => layer * (betweenLayers + nodeDiameter);
+    const y = layer => layer * (betweenLayers + nodeDiameter) - architecture.length * 8;
     return { x, y, largestLayerWidth };
 };
 

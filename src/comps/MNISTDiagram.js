@@ -79,7 +79,7 @@ const MNISTDiagram = ({ architecture, showBias }) => {
     }, [architecture, showBias, config]);
 
     return (
-        <svg className="w-full h-full" ref={svgRef} viewBox="0 -300 950 800"/>
+        <svg className="w-full h-full" ref={svgRef} viewBox="-35 -300 1100 800"/>
     );
 };
 

@@ -12,6 +12,9 @@ import FunctionSelect from '../comps/FunctionSelect';
 
 import * as Constants from '../Constants';
 
+const MAX_EPOCHS = 500;
+const MAX_LAYERS = 5;
+
 function MLP() {
     const [hiddenLayers, setHiddenLayers] = useState(1);
     const [neuronsInLayers, setNeuronsInLayers] = useState([1]);
@@ -27,8 +30,8 @@ function MLP() {
     };
 
     const layerCountInc = () => {
-        setHiddenLayers(prev => (prev < 6 ? prev + 1 : 6));
-        setNeuronsInLayers(prev => (prev.length < 6 ? [...prev, 1] : prev));
+        setHiddenLayers(prev => (prev < MAX_LAYERS ? prev + 1 : MAX_LAYERS));
+        setNeuronsInLayers(prev => (prev.length < MAX_LAYERS ? [...prev, 1] : prev));
     };
 
     const neuronCountDec = (idx) => {
@@ -47,7 +50,7 @@ function MLP() {
     const neuronCountInc = (idx) => {
         setNeuronsInLayers(prev => {
             const updated = [...prev];
-            updated[idx] = Math.min(updated[idx] + 1, 6);
+            updated[idx] = Math.min(updated[idx] + 1, MAX_LAYERS);
             return updated;
         });
     };
@@ -101,18 +104,19 @@ function MLP() {
     }, [hiddenLayers, neuronsInLayers, modelFunctionIdx]);
 
     return (
-        <div className="flex flex-col">
+        <div className="flex flex-col bg-gray-50 h-screen">
             <Header headerText={"Simple MLP"} />
-            <div id="spacer" className="h-4"></div>
-            <div className="flex flex-row justify-between">
-                <div className="flex-1 m-4">
-                    <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
+            <div className="flex flex-row w-full">
+                <div className="flex flex-row max-w-6xl p-4 space-x-4">
+                    <div className="relative flex justify-center flex-col border border-gray-300 m-4 rounded-lg bg-white p-4">
+                        <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
+                    </div>
+                    <div className="flex flex-col justify-center bg-white rounded-lg mt-4 border border-gray-300">
+                        <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} />
+                    </div>
                 </div>
-                <div className="flex-1 m-4 flex justify-center">
-                    <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} />
-                </div>
-                <div className="flex-1 m-4">
-                    <div className="flex flex-col gap-y-3 p-6 bg-gray-100 border border-gray-300">
+                <div className="shrink-0 w-1/3 mt-4 mr-4">
+                    <div className="m-4 flex flex-col p-6 gap-y-3 bg-white border border-gray-300 rounded-lg">
                         <h1 className="text-xl font-bold">Settings</h1>
                         <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
                         <div>
@@ -120,8 +124,8 @@ function MLP() {
                                 <IncDecButton key={idx} labelText={`Neurons in layer ${idx + 1}`} valueText={neuronsInLayers[idx]} onClickDec={() => neuronCountDec(idx)} onClickInc={() => neuronCountInc(idx)} />
                             ))}
                         </div>
-                        <Slider labelText="Epochs" setState={setEpochs} />
-                        <FunctionSelect labelText="Generating function" onChange={setModelFunctionIdx}/>
+                        <Slider labelText="Epochs" setState={setEpochs} min={1} max={MAX_EPOCHS} initial={epochs} />
+                        <FunctionSelect labelText="Generating function" onChange={setModelFunctionIdx} />
                         <button
                             onClick={trainModel}
                             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
@@ -133,6 +137,7 @@ function MLP() {
             </div>
         </div>
     );
+    
     
     
 }

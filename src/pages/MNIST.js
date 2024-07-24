@@ -209,7 +209,7 @@ function MNIST() {
             <div className="flex flex-row w-full">
                 {/* <div className="flex flex-col min-w-0"> */}
                 <div className="flex flex-row w-full max-w-6xl p-4 space-x-4">
-                    <div className="relative flex-1 flex flex-col border border-gray-300 m-4 rounded-lg bg-white">
+                    <div className="relative flex flex-col border border-gray-300 m-4 rounded-lg bg-white">
                         <MNISTDiagram architecture={[FLATTENED_IMAGE_LENGTH, ...neuronsInLayers, LABEL_LENGTH]} showBias={showBias} />
                     </div>
                     <div className="flex flex-col justify-center bg-white rounded-lg mt-4 border border-gray-300">
@@ -275,7 +275,7 @@ function MNIST() {
                         </div>
                         <button
                             onClick={async () => {
-                                setEpochInfo([{state: "Initializing training (may take up to 20s)..."}]);
+                                setEpochInfo([{state: "Initializing training (May take up to 45s)..."}, {state: "If 'Page unresponsive' warning appears, please press 'Wait'. Training will begin shortly afterward."}]);
                                 await new Promise(resolve => setTimeout(resolve, 0)); // Ensures state update before continuing
                                 trainModel();
                             }}
@@ -285,11 +285,11 @@ function MNIST() {
                         </button>
                     </div>
                     <div ref={logRef} className="overflow-auto h-60 font-mono border border-gray-400 rounded-lg m-4">
-                        <p className="text-sm font-mono font-bold p-2">Console</p>
+                        <p className="text-sm font-mono font-bold p-2 m-2">Console</p>
                         {epochInfo.map(info => (
                             "epoch" in info ?
-                                <p key={info.epoch}>Epoch {info.epoch}: Loss: {info.loss}, Acc: {info.acc}, Val acc: {info.val_acc}</p> :
-                                <p key="0">{info.state}</p>
+                                <p className="m-2" key={info.epoch}>Epoch {info.epoch}: Loss: {info.loss}, Acc: {info.acc}, Val acc: {info.val_acc}</p> :
+                                <p className="m-2" key="0">{info.state}</p>
                         ))}
                     </div>
                 </div>
