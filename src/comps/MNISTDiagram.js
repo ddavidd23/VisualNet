@@ -76,7 +76,7 @@ const setupDimensions = (parentRef) => {
     return {
         width,
         height,
-        viewBox: `${-width} ${-height/2} ${width*2} ${height*2}`
+        viewBox: `${-width} ${-height/2} ${width*2} ${height*3/2}`
     };
 };
 
