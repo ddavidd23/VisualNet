@@ -4,7 +4,7 @@ import * as d3 from "d3";
 const INPUT_WIDTH_FACTOR = 16;
 const LINKS_FROM_INPUT_LAYER = 5; // Number of links from the input layer
 
-const MNISTDiagram = ({ architecture, showBias }) => {
+const MNISTDiagram = ({ architecture, showBias, parentRef }) => {
     const svgRef = useRef(null);
 
     const config = useMemo(() => ({
@@ -27,7 +27,7 @@ const MNISTDiagram = ({ architecture, showBias }) => {
         svg.selectAll("*").remove();
         const g = svg.append("g");
 
-        const { width, height, viewBox } = setupDimensions();
+        const { width, height, viewBox } = setupDimensions(parentRef);
         const { graph } = createGraphData(architecture, showBias);
         const { link, node } = setupGraphElements(g, graph);
 
@@ -42,33 +42,20 @@ const MNISTDiagram = ({ architecture, showBias }) => {
         function redistribute() {
             const { x, y, largestLayerWidth, diagramWidth, diagramHeight } = calculateNodePositions(architecture, width, height, config);
             positionNodes(node, link, x, y, config);
-
+        
             // Center the diagram
-            const scale = Math.min(width / diagramWidth, height / diagramHeight); // 0.5 to add some padding
-            const translateX = (width - diagramWidth * scale);
-            const translateY = (height - diagramHeight * scale);
-            g.attr("transform", `translate(${width/2},${translateY}) scale(${scale})`);
+            const scale = Math.min(width / diagramWidth, height / diagramHeight);
+            const translateX = (width - diagramWidth * scale) / 2;
+            const translateY = (height - diagramHeight * scale) / 2;
+            g.attr("transform", `translate(${translateX},${translateY}) scale(${scale})`);
         }
-
-        // const zoom = d3.zoom()
-        //     .scaleExtent([0.5, 4])  // Set min and max zoom levels
-        //     .on("zoom", (event) => {
-        //         const transform = event.transform;
-        //         const translateY = transform.y;
-        //         const scale = transform.k;
-        //         g.attr("transform", `translate(${width / 2}, ${translateY}) scale(${scale})`);
-        //     });
-
-        // svg.call(zoom);
+        
 
         function resize() {
-            const { width, height, viewBox } = setupDimensions();
-            svg.attr("width", width)
-               .attr("height", height)
-            //    .attr("viewBox", viewBox);
+            const { width, height, viewBox } = setupDimensions(parentRef);
+            svg.attr("width", width).attr("height", height).attr("viewBox", viewBox);
 
             redistribute();
-            // svg.call(zoom.transform, d3.zoomIdentity); // Reset zoom after redistribution
         }
 
         d3.select(window).on("resize", resize);
@@ -76,20 +63,20 @@ const MNISTDiagram = ({ architecture, showBias }) => {
         resize();
         redraw();
         redistribute();
-    }, [architecture, showBias, config]);
+    }, [architecture, showBias, config, parentRef]);
 
     return (
-        <svg className="w-full h-full" ref={svgRef} viewBox="-35 -300 1100 800"/>
+        <svg ref={svgRef}/>
     );
 };
 
-const setupDimensions = () => {
-    const width = window.innerWidth * 0.7;
-    const height = window.innerHeight * 0.5;
+const setupDimensions = (parentRef) => {
+    const parentElement = parentRef.current;
+    const {width, height} = parentElement.getBoundingClientRect();
     return {
         width,
         height,
-        viewBox: `0 0 ${width} ${height}`
+        viewBox: `${-width} ${-height/2} ${width*2} ${height*2}`
     };
 };
 
@@ -203,7 +190,7 @@ const style = (link, node, marker, scales, config) => {
 
     link.style("stroke-width", edgeWidth)
         .style("stroke", d => weightedEdgeColor(d.weight))
-        .style("stroke-opacity", 1)  // Ensure opacity is consistent
+        .style("stroke-opacity", 1)
         .style("fill", "none")
         .attr('marker-end', showArrowheads ? "url(#arrow)" : '');
 

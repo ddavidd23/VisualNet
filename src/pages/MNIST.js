@@ -43,6 +43,7 @@ function MNIST() {
 
     const canvasRef = useRef();  // replacement for document.getElementById("canvas").getContext("2d");
     const logRef = useRef();
+    const mnistParent = useRef();
 
     const clear = () => {
         if (canvasContext) {
@@ -208,43 +209,41 @@ function MNIST() {
             <Header headerText={"MNIST Classification"} />
             <div className="flex flex-row w-full">
                 {/* <div className="flex flex-col min-w-0"> */}
-                <div className="flex flex-row w-full max-w-6xl p-4 space-x-4">
-                    <div className="relative flex flex-col border border-gray-300 m-4 rounded-lg bg-white">
-                        <MNISTDiagram architecture={[FLATTENED_IMAGE_LENGTH, ...neuronsInLayers, LABEL_LENGTH]} showBias={showBias} />
-                    </div>
-                    <div className="flex flex-col justify-center bg-white rounded-lg mt-4 border border-gray-300">
-                        <div className="mb-8">
-                            <canvas
-                                ref={canvasRef}
-                                onMouseDown={startDrawing}
-                                onMouseMove={draw}
-                                onMouseUp={stopDrawing}
-                                onMouseEnter={stopDrawing}
-                                onMouseLeave={stopDrawing}
-                                width={CANVAS_WIDTH}
-                                height={CANVAS_HEIGHT}
-                                className="border border-gray-300 m-4"
-                            />
-                            <div className="flex flex-row">
-                                <button
-                                    onClick={clear}
-                                    className="border border-gray-300 ml-4 p-2"
-                                >
-                                    Clear
-                                </button>
-                                <button
-                                    onClick={predict}
-                                    className="border border-gray-300 ml-4 p-2"
-                                >
-                                    Predict
-                                </button>
-                            </div>
-                        </div>
-                        <Output probs={probs} />
-                    </div>
+                <div ref={mnistParent} className="w-1/3 flex flex-col border border-gray-300 m-4 rounded-lg bg-white">
+                    <MNISTDiagram architecture={[FLATTENED_IMAGE_LENGTH, ...neuronsInLayers, LABEL_LENGTH]} showBias={showBias} parentRef={mnistParent} />
                 </div>
-                <div className="shrink-0 w-1/3 mt-4 mr-4">
-                    <div className="m-4 flex flex-col p-6 gap-y-3 bg-white border border-gray-300 rounded-lg">
+                <div className="flex-1 flex flex-col bg-white rounded-lg my-4 border border-gray-300">
+                    <div className="m-auto">
+                        <canvas
+                            ref={canvasRef}
+                            onMouseDown={startDrawing}
+                            onMouseMove={draw}
+                            onMouseUp={stopDrawing}
+                            onMouseEnter={stopDrawing}
+                            onMouseLeave={stopDrawing}
+                            width={CANVAS_WIDTH}
+                            height={CANVAS_HEIGHT}
+                            className="border border-gray-300 m-4"
+                        />
+                        <div className="flex flex-row">
+                            <button
+                                onClick={clear}
+                                className="border border-gray-300 ml-4 p-2"
+                            >
+                                Clear
+                            </button>
+                            <button
+                                onClick={predict}
+                                className="border border-gray-300 ml-4 p-2"
+                            >
+                                Predict
+                            </button>
+                        </div>
+                    </div>
+                    <Output probs={probs} />
+                </div>
+                <div className="flex-1 m-4">
+                    <div className="flex flex-col p-6 gap-y-3 bg-white border border-gray-300 rounded-lg">
                         <h1 className="text-xl font-bold">Settings</h1>
                         <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
                         {Array.from({ length: hiddenLayers }, (_, idx) => (
