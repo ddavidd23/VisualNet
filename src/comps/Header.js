@@ -13,9 +13,9 @@ export default function Header({ headerText }) {
                 <h2>{ headerText }</h2>
             </div>
             <div className="flex-1 text-md text-white text-right">
-                <a href="#" className="inline-block text-sm px-4 py-2 leading-none border rounded text-white border-white hover:border-transparent hover:text-blue-500 hover:bg-white hover:font-bold">
+                {/* <button className="inline-block text-sm px-4 py-2 leading-none border rounded text-white border-white hover:border-transparent hover:text-blue-500 hover:bg-white hover:font-bold">
                     Download Model
-                </a>
+                </button> */}
             </div>
         </nav>
     );
