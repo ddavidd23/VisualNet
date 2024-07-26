@@ -4,7 +4,7 @@ import * as d3 from "d3";
 const INPUT_WIDTH_FACTOR = 16;
 const LINKS_FROM_INPUT_LAYER = 5;
 
-const MLPDiagram = ({ architecture, showBias }) => {
+const MLPDiagram = ({ architecture, showBias, parentRef }) => {
     const svgRef = useRef(null);
 
     const config = useMemo(() => ({
@@ -27,25 +27,25 @@ const MLPDiagram = ({ architecture, showBias }) => {
         svg.selectAll("*").remove();
         const g = svg.append("g");
 
-        const { width, height } = setupDimensions();
-        const { graph, label } = createGraphData(architecture, showBias);
-        const { link, node, text } = setupGraphElements(g, graph, label);
+        const { width, height } = setupDimensions(parentRef);
+        const { graph } = createGraphData(architecture, showBias);
+        const { link, node } = setupGraphElements(g, graph);
 
         const scales = createScales(config);
         const marker = createArrowMarker(svg, config);
 
         function redraw() {
-            updateGraphElements(link, node, text, graph, label, config);
+            updateGraphElements(link, node, graph, config);
             style(link, node, marker, scales, config);
         }
 
         function redistribute() {
             const { x, y, largestLayerWidth } = calculateNodePositions(architecture, width, height, config);
-            positionNodes(node, link, text, x, y, width, largestLayerWidth, config);
+            positionNodes(node, link, x, y, width, largestLayerWidth, config);
         }
 
         function resize() {
-            const { width, height } = setupDimensions();
+            const { width, height } = setupDimensions(parentRef);
             svg.attr("width", width).attr("height", height);
 
             // Calculate vertical translation based on the number of layers
@@ -64,14 +64,19 @@ const MLPDiagram = ({ architecture, showBias }) => {
         redistribute();
     }, [architecture, showBias, config]);
 
-    return <svg className="w-full h-full" ref={svgRef} viewBox="50 60 400 400" />;
+    return <svg ref={svgRef} />;
 };
 
 // Helper functions
-const setupDimensions = () => ({
-    width: window.innerWidth / 3,
-    height: window.innerHeight * 2/3
-});
+const setupDimensions = (parentRef) => {
+    const parentElement = parentRef.current;
+    const {width, height} = parentElement.getBoundingClientRect();
+    return {
+        width,
+        height,
+        viewBox: `${-width} ${-height/2} ${width*2} ${height*3/2}`
+    };
+};
 
 const createGraphData = (architecture, showBias) => {
     const nodes = architecture.flatMap((layerWidth, layerIndex) => 
@@ -102,33 +107,14 @@ const createGraphData = (architecture, showBias) => {
         parseInt(link.target.split('_')[0]) === architecture.length - 1
     );
 
-    const label = architecture.map((layerWidth, layerIndex) => {
-        let text;
-        if (layerIndex === 0) {
-            text = "Input layer";
-        } else if (layerIndex === architecture.length - 1) {
-            text = "Output layer";
-        } else {
-            text = layerWidth === 1 ? "1 neuron" : `${layerWidth} neurons`;
-        }
-        
-        return { 
-            id: `layer_${layerIndex}_label`, 
-            layer: layerIndex, 
-            text: text
-        };
-    });
-
-    return { graph: { nodes, links: filteredLinks }, label };
+    return { graph: { nodes, links: filteredLinks } };
 };
 
-const setupGraphElements = (g, graph, label) => ({
+const setupGraphElements = (g, graph) => ({
     link: g.selectAll(".link").data(graph.links, d => d.id)
         .enter().insert("path", ".node").attr("class", "link"),
     node: g.selectAll(".node").data(graph.nodes, d => d.id)
-        .enter().append("rect").attr("class", "node"),
-    text: g.selectAll(".text").data(label, d => d.id)
-        .enter().append("text").attr("class", "text")
+        .enter().append("rect").attr("class", "node")
 });
 
 const createScales = ({ negativeEdgeColor, positiveEdgeColor }) => ({
@@ -150,16 +136,12 @@ const createArrowMarker = (svg, { defaultEdgeColor }) => {
     return marker;
 };
 
-const updateGraphElements = (link, node, text, graph, label, { nodeDiameter, nominalTextSize }) => {
+const updateGraphElements = (link, node, graph, { nodeDiameter }) => {
     link.data(graph.links, d => d.id);
     node.data(graph.nodes, d => d.id)
         .attr("width", nodeDiameter)
         .attr("height", nodeDiameter)
         .attr("id", d => d.id);
-    text.data(label, d => d.id)
-        .attr("dy", ".35em")
-        .style("font-size", `${nominalTextSize}px`)
-        .text(d => d.text);
 };
 
 const calculateNodePositions = (architecture, width, height, { nodeDiameter, betweenLayers, betweenNodesInLayer }) => {
@@ -167,16 +149,14 @@ const calculateNodePositions = (architecture, width, height, { nodeDiameter, bet
     const largestLayerWidth = Math.max(...layerWidths);
     const layerOffsets = layerWidths.map(layerWidth => (largestLayerWidth - layerWidth) / 2);
 
-    // const x = (layer, nodeIndex) => layerOffsets[layer] + nodeIndex * (nodeDiameter + betweenNodesInLayer);
     const x = (layer, nodeIndex) => {
         return layerOffsets[layer] + nodeIndex * (nodeDiameter + betweenNodesInLayer) - largestLayerWidth / 2;
     };
-    // const y = layer => layer * (betweenLayers + nodeDiameter);
     const y = layer => layer * (betweenLayers + nodeDiameter) - architecture.length * 8;
     return { x, y, largestLayerWidth };
 };
 
-const positionNodes = (node, link, text, x, y, width, largestLayerWidth, { nodeDiameter }) => {
+const positionNodes = (node, link, x, y, width, largestLayerWidth, { nodeDiameter }) => {
     node.attr('x', d => x(d.layer, d.node_index) - nodeDiameter / 2)
         .attr('y', d => y(d.layer) - nodeDiameter / 2);
 
@@ -185,9 +165,6 @@ const positionNodes = (node, link, text, x, y, width, largestLayerWidth, { nodeD
         const [targetLayer, targetIndex] = d.target.split('_').map(Number);
         return `M${x(sourceLayer, sourceIndex)},${y(sourceLayer)} ${x(targetLayer, targetIndex)},${y(targetLayer)}`;
     });
-
-    text.attr("x", d => width / 2 + largestLayerWidth / 2 + 20)
-        .attr("y", d => y(d.layer));
 };
 
 const style = (link, node, marker, scales, config) => {
@@ -196,7 +173,7 @@ const style = (link, node, marker, scales, config) => {
 
     link.style("stroke-width", edgeWidth)
         .style("stroke", d => weightedEdgeColor(d.weight))
-        .style("stroke-opacity", 1)  // Ensure opacity is consistent
+        .style("stroke-opacity", 1)
         .style("fill", "none")
         .attr('marker-end', showArrowheads ? "url(#arrow)" : '');
 

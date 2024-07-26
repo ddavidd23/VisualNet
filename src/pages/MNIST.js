@@ -205,7 +205,7 @@ function MNIST() {
     }, [hiddenLayers, neuronsInLayers, modelFunctionIdx, batchSize]);
 
     return (
-        <div className="flex flex-col bg-gray-50">
+        <div className="flex flex-col bg-gray-50 h-screen">
             <Header headerText={"MNIST Classification"} />
             <div className="flex flex-row w-full">
                 {/* <div className="flex flex-col min-w-0"> */}

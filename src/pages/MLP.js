@@ -24,6 +24,8 @@ function MLP() {
     const [model, setModel] = useState();
     const [predictions, setPredictions] = useState();
 
+    const mlpParent = useRef();
+
     const layerCountDec = () => {
         setHiddenLayers(prev => (prev > 1 ? prev - 1 : 1));
         setNeuronsInLayers(prev => (prev.length > 1 ? prev.slice(0, -1) : prev));
@@ -107,15 +109,13 @@ function MLP() {
         <div className="flex flex-col bg-gray-50 h-screen">
             <Header headerText={"Simple MLP"} />
             <div className="flex flex-row w-full">
-                <div className="flex flex-row max-w-6xl p-4 space-x-4">
-                    <div className="relative flex justify-center flex-col border border-gray-300 m-4 rounded-lg bg-white p-4">
-                        <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
-                    </div>
-                    <div className="flex flex-col justify-center bg-white rounded-lg mt-4 border border-gray-300">
-                        <MLPDiagram architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} />
-                    </div>
+                <div className="w-1/3 flex justify-center flex-col border border-gray-300 m-4 rounded-lg bg-white p-4">
+                    <Graph modelFunctionIdx={modelFunctionIdx} predictions={predictions} />
                 </div>
-                <div className="shrink-0 w-1/3 mt-4 mr-4">
+                <div ref={mlpParent} className="w-1/3 flex flex-col border border-gray-300 m-4 rounded-lg bg-white">
+                    <MLPDiagram parentRef={mlpParent} architecture={[1, ...neuronsInLayers, 1]} showBias={showBias} />
+                </div>
+                <div className="flex-1 w-1/3">
                     <div className="m-4 flex flex-col p-6 gap-y-3 bg-white border border-gray-300 rounded-lg">
                         <h1 className="text-xl font-bold">Settings</h1>
                         <IncDecButton labelText={"Hidden layers"} valueText={hiddenLayers} onClickDec={layerCountDec} onClickInc={layerCountInc} />
